@@ -31,6 +31,7 @@ API_ROUTERS = (
     classes.router,
     classes.config_router,
     class_curriculum.router,
+    class_curriculum.public_router,
     health.router,
     learning.router,
     quizzes.router,
