@@ -26,8 +26,10 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const labComponents = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => lazy(() => import(`./pages/Lab${i}.jsx`)));
-const Lab0 = labComponents[0];
+const labLoaders = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => () => import(`./pages/Lab${i}.jsx`));
+const labComponents = labLoaders.map((load) => lazy(load));
+// Warm the legacy Lab chunks so changing Labs does not show the route-level fallback.
+labLoaders.forEach(load => load());
 
 const AUTH_ROUTES = ['/login', '/signup'];
 const APP_ROUTES = ['/', '/profile', ...Array.from({ length: 9 }, (_, index) => `/lab${index}`)];
@@ -45,12 +47,6 @@ function ProtectedServices() {
   if (loading) return <LoadingScreen />;
   if (!user && location.pathname !== '/lab0') return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
   return <SerialProvider key={user?.id || 'guest'}><TelemetryProvider><ServiceLayout /></TelemetryProvider></SerialProvider>;
-}
-
-function Lab0Entry() {
-  const { user } = useAuth();
-  if (!user) return <ClassLearningPage experience />;
-  return <LegacyLabGate labId={0}><Lab0 /></LegacyLabGate>;
 }
 
 function PublicLayout() {
@@ -71,6 +67,14 @@ function LegacyLabGate({ labId, children }) {
   const { classMode } = useAuth();
   if (classMode === null) return <LoadingScreen />;
   return classMode ? <LabEntry labId={labId}>{children}</LabEntry> : children;
+}
+
+function LegacyLabRoute({ labId }) {
+  const { user } = useAuth();
+  const Component = Number.isInteger(labId) ? labComponents[labId] : null;
+  if (!Component) return <NotFoundPage />;
+  if (!user && labId === 0) return <ClassLearningPage experience />;
+  return <LegacyLabGate labId={labId}><Component /></LegacyLabGate>;
 }
 
 function ServiceLayout() {
@@ -125,11 +129,9 @@ export default function App() {
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
       </Route>
-      <Route path="/lab0" element={<Lab0Entry />} />
-      {labComponents.slice(1).map((Component, index) => {
-        const labId = index + 1;
-        return <Route key={labId} path={`/lab${labId}`} element={<LegacyLabGate labId={labId}><Component /></LegacyLabGate>} />;
-      })}
+      {labComponents.map((_, labId) => (
+        <Route key={labId} path={`/lab${labId}`} element={<LegacyLabRoute labId={labId} />} />
+      ))}
       <Route path="*" element={<NotFoundPage />} />
     </Route>
   </Routes></Suspense>;
