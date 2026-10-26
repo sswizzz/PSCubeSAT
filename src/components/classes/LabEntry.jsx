@@ -12,7 +12,7 @@ function lessonQuery(lesson) {
 export default function LabEntry({ labId, children }) {
   const [search] = useSearchParams();
   const lesson = search.get('lesson');
-  const { data, error, loading, reload } = useLmsResource(`/api/lms/lab-entry?lab_id=${labId}${lesson ? `&lesson=${encodeURIComponent(lesson)}` : ''}`);
+  const { data, error, loading, reload } = useLmsResource(`/api/lms/lab-entry?lab_id=${labId}`, true);
   if (loading) return <LoadingScreen />;
   if (error) return <section className="lms-shell"><Notice error={error} /><button onClick={reload}>Thử lại</button> <Link to="/classes">Lớp của tôi</Link></section>;
   if (data.target === 'legacy') {
