@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, request } from '../contexts/auth-api';
 import { LABS } from '../data/lab-metadata';
+import { getLessonsForLab } from '../data/curriculum';
 import DeviceManager from '../components/profile/DeviceManager';
 
 const ROLE_LABEL = { admin: 'Quản trị viên', user: 'Học viên' };
@@ -106,8 +107,10 @@ function ChangePasswordForm() {
   );
 }
 
-function LearningProgress() {
+function LearningProgress({ user }) {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
+  const currentUser = user || authUser;
   const [progressByLab, setProgressByLab] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -118,10 +121,12 @@ function LearningProgress() {
         rows.forEach((r) => { map[r.lab_id] = r; });
         setProgressByLab(map);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const completedCount = LABS.filter((lab) => progressByLab[lab.id]?.completed_at).length;
+  const isPrivileged = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
 
   return (
     <div className="card">
@@ -145,23 +150,67 @@ function LearningProgress() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {LABS.map((lab) => {
               const p = progressByLab[lab.id];
-              const done = !!p?.completed_at;
+              const done = Boolean(p?.completed_at);
+              const previousLab = LABS.find((item) => item.id === lab.id - 1);
+              const previousDone = previousLab ? Boolean(progressByLab[previousLab.id]?.completed_at) : true;
+              const isLocked = !done && !isPrivileged && lab.id > 0 && !previousDone;
+
+              let percent = 0;
+              if (done) {
+                percent = 100;
+              } else if (!isLocked) {
+                const lessons = getLessonsForLab(lab.id);
+                let completedLessonsCount = 0;
+                if (lab.id === 0) {
+                  if (p?.video_watched || p?.lessons?.['overview']?.completed) completedLessonsCount++;
+                  if (p?.doc_viewed || p?.lessons?.['document']?.completed) completedLessonsCount++;
+                  if (p?.lessons?.['components']?.completed) completedLessonsCount++;
+                } else {
+                  completedLessonsCount = lessons.filter((l) => Boolean(p?.lessons?.[l.id]?.completed)).length;
+                }
+                percent = lessons.length > 0 ? Math.round((completedLessonsCount / lessons.length) * 100) : 0;
+              }
+
+              const status = done ? 'completed' : isLocked ? 'locked' : 'in-progress';
+              const label = done ? 'Đã hoàn thành' : isLocked ? 'Đang khóa' : `Đang học (${percent}%)`;
+              const icon = done ? '✅' : isLocked ? '🔒' : '⏳';
+
               return (
                 <div
                   key={lab.id}
-                  onClick={() => navigate(`/${lab.slug}`)}
+                  onClick={() => {
+                    if (isLocked) return;
+                    navigate(`/${lab.slug}`);
+                  }}
+                  title={isLocked ? 'Cần hoàn thành lab trước để mở khóa' : `Lab ${lab.id}: ${lab.title}`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
-                    borderRadius: '8px', cursor: 'pointer', transition: 'background var(--transition-fast)',
+                    borderRadius: '8px', cursor: isLocked ? 'not-allowed' : 'pointer',
+                    opacity: isLocked ? 0.6 : 1,
+                    transition: 'background var(--transition-fast)',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-surface-hover)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  onMouseEnter={(e) => {
+                    if (!isLocked) e.currentTarget.style.background = 'var(--bg-surface-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLocked) e.currentTarget.style.background = 'transparent';
+                  }}
                 >
-                  <span style={{ fontSize: '1.1rem' }}>{done ? '✅' : '⬜'}</span>
+                  <span style={{ fontSize: '1.1rem' }}>{icon}</span>
                   <span style={{ fontSize: '1.2rem' }}>{lab.icon}</span>
-                  <span style={{ flex: 1, fontWeight: 500 }}>Lab {lab.id}: {lab.title}</span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {done ? 'Đã hoàn thành' : p?.compiled_at || p?.video_watched ? 'Đang học' : 'Chưa bắt đầu'}
+                  <span style={{ flex: 1, fontWeight: 500, color: isLocked ? 'var(--text-muted)' : 'inherit' }}>
+                    Lab {lab.id}: {lab.title}
+                  </span>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: status === 'in-progress' ? 600 : 500,
+                    color: status === 'completed'
+                      ? 'var(--accent-green, #16a34a)'
+                      : status === 'in-progress'
+                      ? 'var(--brand-primary, #0a4174)'
+                      : 'var(--text-muted)',
+                  }}>
+                    {label}
                   </span>
                 </div>
               );
@@ -189,7 +238,7 @@ export default function ProfilePage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px' }}>
         <ProfileInfo user={user} />
         <ChangePasswordForm />
-        <LearningProgress />
+        <LearningProgress user={user} />
         <DeviceManager />
       </div>
     </div>

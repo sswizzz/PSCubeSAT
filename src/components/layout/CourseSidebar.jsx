@@ -39,11 +39,18 @@ export default function CourseSidebar({ labs, currentLabId, activeLesson, onSele
     if (item?.completed_at) return { status: 'completed', label: 'Đã hoàn thành' };
     const previous = labs.find(candidate => candidate.id === lab.id - 1);
     const previousProgress = previous && progressFor(previous);
-    if (previous && !isPrivileged && !previousProgress?.completed_at) return { status: 'locked', label: 'Đã khóa' };
-    if (item?.lessons && Object.values(item.lessons).some(lesson => lesson.started_at || lesson.completed)) {
-      return { status: 'in-progress', label: 'Đang học' };
+    if (previous && !isPrivileged && !previousProgress?.completed_at) return { status: 'locked', label: 'Đang khóa' };
+    const lessons = lab.lessons || [];
+    let completedLessonsCount = 0;
+    if (lab.id === 0) {
+      if (item?.video_watched || item?.lessons?.['overview']?.completed) completedLessonsCount++;
+      if (item?.doc_viewed || item?.lessons?.['document']?.completed) completedLessonsCount++;
+      if (item?.lessons?.['components']?.completed) completedLessonsCount++;
+    } else {
+      completedLessonsCount = lessons.filter(lesson => Boolean(item?.lessons?.[lesson.id]?.completed)).length;
     }
-    return { status: lab.id === currentLabId ? 'in-progress' : 'available', label: lab.id === currentLabId ? 'Đang học' : 'Có thể học' };
+    const percent = lessons.length > 0 ? Math.round((completedLessonsCount / lessons.length) * 100) : 0;
+    return { status: 'in-progress', label: `Đang học (${percent}%)` };
   };
 
   const statusIcon = status => {
