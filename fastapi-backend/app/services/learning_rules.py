@@ -79,6 +79,7 @@ def learning_path(config, states, unlocked=(), last_lesson=None, allow_waivers=T
                 ],
             }
         )
+    previous_lesson = None
     for lab in labs:
         missing = [value for value in lab["prerequisites"] if not done.get(value, False)]
         available = not missing or lab["id"] in unlocked or lab["completed"]
@@ -89,12 +90,27 @@ def learning_path(config, states, unlocked=(), last_lesson=None, allow_waivers=T
             if available
             else "Cần hoàn thành " + ", ".join(f"Lab {value}" for value in missing),
         )
+        for lesson in lab["lessons"]:
+            completed = satisfies(lesson["status"], allow_waivers)
+            lesson_missing = []
+            if not available:
+                lesson_missing.append(lab["reason"])
+            elif previous_lesson and not satisfies(previous_lesson["status"], allow_waivers):
+                lesson_missing.append("Bạn cần hoàn thành bài học trước để mở khóa bài này.")
+            lesson.update(
+                access="completed" if completed else "available" if not lesson_missing else "locked",
+                reason="; ".join(lesson_missing),
+            )
+            if lesson["required"]:
+                previous_lesson = lesson
     candidates = [
         item
         for lab in labs
         if lab["access"] == "available"
         for item in lab["lessons"]
-        if not satisfies(item["status"], allow_waivers) and item["status"] != "pending_review"
+        if item["access"] == "available"
+        and not satisfies(item["status"], allow_waivers)
+        and item["status"] != "pending_review"
     ]
     resume = next((item["id"] for item in candidates if item["id"] == last_lesson), None)
     if resume is None and candidates:

@@ -7,3 +7,4 @@ class LabProgressResponse(BaseModel):
     doc_viewed: bool = Field(False, description="Đã mở tài liệu bài học")
     compiled_at: str | None = Field(None, description="Thời điểm biên dịch code thành công lần đầu")
     completed_at: str | None = Field(None, description="Thời điểm lab được đánh dấu hoàn thành")
+    lessons: dict[str, dict] = Field(default_factory=dict)

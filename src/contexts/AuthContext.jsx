@@ -15,7 +15,11 @@ export function AuthProvider({ children }) {
     setClassMode(null);
     if (userId) request('/api/lms/config')
       .then(config => { if (active) { setLegacyAllowed(config.legacy_allowed !== false); setClassMode(config.class_mode); } })
-      .catch(() => { if (active) setClassMode(false); });
+      .catch(() => {
+        // Never fall back to the unrestricted legacy curriculum when the
+        // server-side LMS policy cannot be verified.
+        if (active) { setLegacyAllowed(false); setClassMode(true); }
+      });
     return () => { active = false; };
   }, [userId]);
 

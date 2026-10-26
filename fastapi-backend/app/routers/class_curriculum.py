@@ -19,6 +19,7 @@ router = APIRouter(
     tags=["class-curriculum"],
     dependencies=[Depends(get_required_user), Depends(require_lms_enabled)],
 )
+public_router = APIRouter(tags=["class-curriculum"])
 read_class = require_class_member()
 write_class = require_class_member(roles=["teacher"], write=True)
 
@@ -70,6 +71,10 @@ async def publish(
     return await service.publish(db, access, request.expected_version, dry_run)
 
 
-@router.get("/api/curriculum/preview")
+@public_router.get("/api/curriculum/preview")
 async def preview(db: AsyncSession = Depends(get_db)):
-    return await service.preview_curriculum(db)
+    curriculum = await service.preview_curriculum(db)
+    # Public visitors may preview the introductory lab only. Full curriculum
+    # access requires an authenticated user and, for class learning, membership.
+    curriculum["labs"] = [lab for lab in curriculum["labs"] if lab["id"] == 0]
+    return curriculum

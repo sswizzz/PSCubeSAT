@@ -1,11 +1,14 @@
 import unittest
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from sqlalchemy import func, select
 
 from app.models.learning import ProgressEvent
+from app.models.tables import UserRole
 from app.services.learning_rules import (
     BRANCHING,
     learning_path,
@@ -14,6 +17,7 @@ from app.services.learning_rules import (
     video_complete,
     watched_seconds,
 )
+from app.services.progress import ProgressService
 from app.tests import test_course_configuration as fixtures
 
 
@@ -133,6 +137,124 @@ class LearningRulesTests(unittest.TestCase):
             "doc-0",
         )
 
+    def test_lessons_unlock_in_one_course_sequence(self):
+        config = small_config()
+        initial = learning_path(config, {})
+        self.assertEqual(initial["labs"][0]["lessons"][0]["access"], "available")
+        self.assertEqual(initial["labs"][1]["access"], "locked")
+        self.assertEqual(initial["labs"][1]["lessons"][0]["access"], "locked")
+
+        after_first = learning_path(config, {"doc-0": "completed"})
+        self.assertEqual(after_first["labs"][1]["access"], "available")
+        self.assertEqual(after_first["labs"][1]["lessons"][0]["access"], "available")
+        self.assertEqual(after_first["labs"][2]["lessons"][0]["access"], "locked")
+
+
+class LegacyProgressTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.db = SimpleNamespace(
+            commit=AsyncMock(),
+            refresh=AsyncMock(),
+        )
+        self.progress = SimpleNamespace(
+            lab_id=0,
+            video_watched=False,
+            doc_viewed=False,
+            compiled_at=None,
+            completed_at=None,
+            lesson_progress={},
+        )
+        self.user = SimpleNamespace(id=7, role=UserRole.user)
+        self.service = ProgressService(self.db)
+        self.service.repo = SimpleNamespace(
+            get_or_create=AsyncMock(return_value=self.progress),
+            list_by_user=AsyncMock(),
+        )
+        self.seed = {
+            "legacy": [
+                {
+                    "id": 0,
+                    "lessons": [
+                        {"id": "first"},
+                        {"id": "second"},
+                    ],
+                }
+            ]
+        }
+
+    async def test_start_lesson_persists_started_at(self):
+        with patch("app.services.progress.read_seed", return_value=self.seed):
+            result = await self.service.start_lesson(self.user, 0, "first")
+
+        self.assertIn("first", result.lessons)
+        self.assertFalse(result.lessons["first"]["completed"])
+        self.assertIsNotNone(result.lessons["first"]["started_at"])
+        self.db.commit.assert_awaited_once()
+
+    async def test_completion_before_one_minute_is_rejected(self):
+        self.progress.lesson_progress = {
+            "first": {
+                "started_at": (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat(),
+                "completed": False,
+            }
+        }
+
+        with patch("app.services.progress.read_seed", return_value=self.seed):
+            with self.assertRaises(Exception) as context:
+                await self.service.complete_lesson(self.user, 0, "first")
+
+        self.assertEqual(context.exception.code, "MINIMUM_LEARNING_TIME")
+        self.assertFalse(self.progress.lesson_progress["first"]["completed"])
+        self.db.commit.assert_not_awaited()
+
+    async def test_previous_lesson_is_required(self):
+        self.progress.lesson_progress = {
+            "first": {
+                "started_at": (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat(),
+                "completed": False,
+            },
+            "second": {
+                "started_at": (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat(),
+                "completed": False,
+            },
+        }
+
+        with patch("app.services.progress.read_seed", return_value=self.seed):
+            with self.assertRaises(Exception) as context:
+                await self.service.complete_lesson(self.user, 0, "second")
+
+        self.assertEqual(context.exception.code, "PREREQUISITE_NOT_MET")
+        self.db.commit.assert_not_awaited()
+
+    async def test_final_lesson_marks_lab_complete(self):
+        old = (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat()
+        self.progress.lesson_progress = {
+            "first": {"started_at": old, "completed": True},
+            "second": {"started_at": old, "completed": False},
+        }
+
+        with patch("app.services.progress.read_seed", return_value=self.seed):
+            result = await self.service.complete_lesson(self.user, 0, "second")
+
+        self.assertTrue(result.lessons["second"]["completed"])
+        self.assertIsNotNone(result.completed_at)
+        self.db.commit.assert_awaited_once()
+
+    async def test_teacher_can_complete_without_waiting(self):
+        self.user.role = UserRole.teacher
+        self.progress.lesson_progress = {
+            "first": {
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "completed": False,
+            }
+        }
+
+        with patch("app.services.progress.read_seed", return_value=self.seed):
+            result = await self.service.complete_lesson(self.user, 0, "first")
+
+        self.assertTrue(result.lessons["first"]["completed"])
+        self.db.commit.assert_awaited_once()
+
 
 class LearningAPITests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -181,10 +303,17 @@ class LearningAPITests(unittest.IsolatedAsyncioTestCase):
         return result.json()
 
     async def test_default_path_and_content_source_compile_gates(self):
-        self.assertEqual((await self.path())["labs"][1]["access"], "locked")
+        initial_path = await self.path()
+        self.assertEqual(initial_path["labs"][0]["lessons"][0]["access"], "available")
+        self.assertEqual(initial_path["labs"][1]["access"], "locked")
         content = (await self.call(4, "GET", self.base + "/curriculum")).json()
         self.assertNotIn("content", content["labs"][1]["lessons"][0])
-        self.assertEqual((await self.event("summary-1")).status_code, 403)
+        locked_event = await self.event("summary-1")
+        self.assertEqual(locked_event.status_code, 403)
+        self.assertEqual(
+            locked_event.json()["message"],
+            "Bạn cần hoàn thành bài học trước để mở khóa bài này.",
+        )
         source = f"/api/curriculum/exercises/Lab2-01a_Battery_GPIO/source?class_id={self.class_a}"
         self.assertEqual((await self.call(4, "GET", source)).status_code, 403)
         with patch(
@@ -203,9 +332,10 @@ class LearningAPITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 [path["labs"][i]["access"] for i in (1, 2)], ["available", "available"]
             )
+            self.assertEqual((await self.call(4, "POST", "/api/compile", payload)).status_code, 403)
+            await self.complete(1)
             self.assertEqual((await self.call(4, "POST", "/api/compile", payload)).status_code, 200)
             self.assertFalse((await self.path())["labs"][2]["completed"])
-        await self.complete(1)
         await self.complete(2)
         await self.complete(3)
         self.assertEqual((await self.path())["labs"][6]["access"], "locked")
@@ -408,8 +538,9 @@ class LearningAPITests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             (await self.path())["labs"][1]["percent"], 100
         )  # Waiver survives configuration revisions.
+        await self.event("document-2-1")
         await self.complete(2)
-        self.assertEqual((await self.path())["labs"][2]["percent"], 50)
+        self.assertEqual((await self.path())["labs"][2]["percent"], 100)
         body = deepcopy(self.body)
         for item in body["lessons"]:
             if item["lesson_id"] == "document-2-1":

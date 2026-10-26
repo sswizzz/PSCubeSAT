@@ -136,7 +136,7 @@ async def restricted_config(db, access, config):
         for lesson in lab["lessons"]:
             status = states[lesson["id"]]["status"]
             lesson["progress"] = states[lesson["id"]]
-            if state["access"] == "locked" and not satisfies(status):
+            if states[lesson["id"]]["access"] == "locked" and not satisfies(status):
                 for key in ("content", "params", "completion_rule"):
                     lesson.pop(key, None)
     config["learning_path"] = path
@@ -163,12 +163,17 @@ async def ensure_available(db, access, config, lesson_id):
             lab for lab in path["labs"] if any(item["id"] == lesson_id for item in lab["lessons"])
         )
         state = next(item["status"] for item in lab["lessons"] if item["id"] == lesson_id)
-        if lab["access"] == "locked" and not satisfies(state):
+        lesson_state = next(item for item in lab["lessons"] if item["id"] == lesson_id)
+        if lesson_state["access"] == "locked" and not satisfies(state):
             raise LMSError(
                 403,
                 "PREREQUISITE_NOT_MET",
-                lab["reason"],
-                {"missing_labs": lab["missing_prerequisites"]},
+                "Bạn cần hoàn thành bài học trước để mở khóa bài này.",
+                {
+                    "missing_labs": lab["missing_prerequisites"],
+                    "lesson_id": lesson_id,
+                    "reason": lesson_state["reason"] or lab["reason"],
+                },
             )
     return lesson
 

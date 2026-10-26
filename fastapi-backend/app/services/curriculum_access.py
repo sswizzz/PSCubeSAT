@@ -8,6 +8,8 @@ from app.models.tables import (
     ClassStatus,
     MembershipRole,
     MembershipStatus,
+    LabProgress,
+    UserRole,
 )
 from app.services.course_configuration import configuration, preview_curriculum
 from app.services.permissions import ClassAccess, legacy_restricted, require_class_member
@@ -86,4 +88,26 @@ async def lab_entry(db, user, lab_id, lesson_id=None):
         return {"target": "class", "class_id": valid[0]["id"], "lesson_id": lesson_id}
     if valid:
         return {"target": "choose", "classes": valid, "lesson_id": lesson_id}
-    return {"target": "experience" if await legacy_restricted(db, user) else "legacy"}
+    # Students must not fall back to the unrestricted legacy renderer. Keep
+    # the existing legacy path for staff accounts when no class destination
+    # applies to them.
+    if await legacy_restricted(db, user):
+        return {"target": "experience"}
+    if user.role == UserRole.user:
+        completed = {
+            row.lab_id
+            for row in (
+                await db.execute(select(LabProgress).where(LabProgress.user_id == user.id))
+            ).scalars()
+            if row.completed_at is not None
+        }
+        if lab_id > 0 and lab_id - 1 not in completed:
+            return {
+                "target": "locked",
+                "lab_id": lab_id,
+                "message": "Bạn cần hoàn thành Lab trước để mở khóa Lab này.",
+            }
+    # Authenticated users without an active LMS class retain access to the
+    # existing lab experience. Class members are handled above and receive
+    # the server-computed learning path instead.
+    return {"target": "legacy"}

@@ -27,6 +27,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const labComponents = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => lazy(() => import(`./pages/Lab${i}.jsx`)));
+const Lab0 = labComponents[0];
 
 const AUTH_ROUTES = ['/login', '/signup'];
 const APP_ROUTES = ['/', '/profile', ...Array.from({ length: 9 }, (_, index) => `/lab${index}`)];
@@ -42,8 +43,28 @@ function ProtectedServices() {
   const { loading, user } = useAuth();
   const location = useLocation();
   if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
-  return <SerialProvider key={user.id}><TelemetryProvider><ServiceLayout /></TelemetryProvider></SerialProvider>;
+  if (!user && location.pathname !== '/lab0') return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}${location.hash}` }} />;
+  return <SerialProvider key={user?.id || 'guest'}><TelemetryProvider><ServiceLayout /></TelemetryProvider></SerialProvider>;
+}
+
+function Lab0Entry() {
+  const { user } = useAuth();
+  if (!user) return <ClassLearningPage experience />;
+  return <LegacyLabGate labId={0}><Lab0 /></LegacyLabGate>;
+}
+
+function PublicLayout() {
+  const location = useLocation();
+  const normalizedPath = location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : location.pathname;
+  const isPreview = normalizedPath === '/preview';
+  return <SerialProvider>
+    <div className="app-container">
+      {!isPreview && <Header />}
+      <main id="main-content" className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  </SerialProvider>;
 }
 
 function LegacyLabGate({ labId, children }) {
@@ -80,27 +101,36 @@ export default function App() {
   return <Suspense fallback={<LoadingScreen />}><Routes>
     <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
     <Route path="/signup" element={<AuthPage><SignUpPage /></AuthPage>} />
-    <Route element={<ProtectedServices />}>
+    <Route element={<PublicLayout />}>
       <Route path="/" element={<HomePage />} />
+      <Route element={<LmsLayout publicPreview />}>
+        <Route path="/preview" element={<ClassLearningPage experience />} />
+      </Route>
+    </Route>
+    <Route element={<ProtectedServices />}>
       <Route path="/profile" element={<ProfilePage />} />
       <Route element={<LmsLayout />}>
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/classes/:classId" element={<ClassDetailPage />} />
-        <Route path="/classes/:classId/curriculum" element={<ClassCurriculumPage />} />
+        <Route element={<LmsLayout roles={['admin', 'teacher']} />}>
+          <Route path="/classes/:classId/curriculum" element={<ClassCurriculumPage />} />
+          <Route path="/classes/:classId/labs/:labId/questions" element={<QuestionBankPage />} />
+          <Route path="/classes/:classId/progress" element={<ClassProgressPage />} />
+          <Route path="/classes/:classId/report" element={<ClassReportPage />} />
+        </Route>
         <Route path="/classes/:classId/learn" element={<ClassLearningPage experience={false} />} />
         <Route path="/classes/:classId/path" element={<LearningPathPage />} />
-        <Route path="/classes/:classId/labs/:labId/questions" element={<QuestionBankPage />} />
-        <Route path="/classes/:classId/progress" element={<ClassProgressPage />} />
-        <Route path="/classes/:classId/report" element={<ClassReportPage />} />
-        <Route path="/preview" element={<ClassLearningPage experience />} />
       </Route>
       <Route element={<LmsLayout roles={['admin']} />}>
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
       </Route>
-      {labComponents.map((Component, index) => <Route key={index} path={`/lab${index}`} element={<LegacyLabGate labId={index}><Component /></LegacyLabGate>} />)}
+      <Route path="/lab0" element={<Lab0Entry />} />
+      {labComponents.slice(1).map((Component, index) => {
+        const labId = index + 1;
+        return <Route key={labId} path={`/lab${labId}`} element={<LegacyLabGate labId={labId}><Component /></LegacyLabGate>} />;
+      })}
       <Route path="*" element={<NotFoundPage />} />
     </Route>
   </Routes></Suspense>;
 }
-

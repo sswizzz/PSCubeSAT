@@ -221,6 +221,7 @@ class LabProgress(Base):
     doc_viewed: Mapped[bool] = mapped_column(Boolean, server_default=text("FALSE"))
     compiled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lesson_progress: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
 
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

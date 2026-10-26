@@ -101,10 +101,10 @@ function LessonContent({ lesson, labId, classId, preview, onRefresh }) {
   return <><Notice {...notice} />
     {completed && <p className="lesson-achieved" role="status">✓ {lesson.progress.status === 'waived' ? 'Đã được miễn yêu cầu' : 'Đã hoàn thành'}</p>}
     {lesson.type === 'video' && <><VideoPlayer url={lesson.content.url} initialPosition={lesson.progress?.last_position || 0} onSegment={preview ? undefined : segment} trackingMode={lesson.content.tracking_mode || 'native'} />
-      {!preview && lesson.content.confirmation_allowed && <button disabled={busy || completed} onClick={() => confirm('video_confirmed')}>Tôi đã xem video</button>}
+      {!preview && lesson.content.confirmation_allowed && <button disabled={busy || completed} onClick={() => confirm('video_confirmed')}>{completed ? 'Đã hoàn thành bài học' : 'Hoàn thành bài học'}</button>}
       {!preview && !lesson.content.confirmation_allowed && !/\.(mp4|webm|ogg|ogv)(?:\?|#|$)/i.test(lesson.content.url) && <p>Nguồn video này chưa hỗ trợ đo đoạn xem. Giảng viên cần bật chế độ xác nhận hoặc cung cấp video đo được.</p>}
     </>}
-    {lesson.type === 'document' && <><DocViewer content={lesson.content.markdown || '# Tài liệu đang được cập nhật'} docPath={undefined} />{!preview && <button className="lms-primary" disabled={busy || completed} onClick={() => confirm('document_read')}>{completed ? 'Đã đọc' : 'Đánh dấu đã đọc'}</button>}</>}
+    {lesson.type === 'document' && <><DocViewer content={lesson.content.markdown || '# Tài liệu đang được cập nhật'} docPath={undefined} />{!preview && <button className="lms-primary" disabled={busy || completed} onClick={() => confirm('document_read')}>{completed ? 'Đã hoàn thành bài học' : 'Hoàn thành bài học'}</button>}</>}
     {lesson.type === 'practice' && <Practice lesson={lesson} labId={labId} classId={classId} preview={preview} onRefresh={onRefresh} />}
     {lesson.type === 'labtest' && (preview ? <p>Chế độ xem thử không tạo lượt thi. Mỗi đề gồm 5 câu từ ngân hàng được duyệt.</p> : <Suspense fallback={<p>Đang tải bài kiểm tra…</p>}><QuizPanel classId={classId} labId={labId} policySummary={lesson.content} onRefresh={onRefresh} /></Suspense>)}
   </>;
@@ -131,12 +131,16 @@ export default function ClassLearningPage({ experience = false }) {
     <header className="lms-heading"><div><h1>{experience ? 'Trải nghiệm CubeSAT' : preview ? 'Xem như sinh viên' : 'Chương trình học của lớp'}</h1><p>{preview ? 'Chế độ xem thử không ghi tiến độ hoặc điểm.' : 'Nội dung được giảng viên xuất bản cho lớp.'}</p></div><Link to={experience ? '/classes' : `/classes/${classId}`}>Về lớp học</Link></header>
     {!experience && <Link to={`/classes/${classId}/path`}>Lộ trình và tiến độ học tập</Link>}
     {!selected ? <p>Chưa có bài học được bật.</p> : <div className="curriculum-player">
-      <nav aria-label="Chọn bài học" className="curriculum-outline">{data.labs.map(lab => <details key={lab.id} open={selected.lab.id === lab.id}><summary>{lab.access === 'locked' ? '🔒 ' : ''}Lab {lab.id}: {lab.title}</summary>{lab.lessons.map(lesson => <button key={lesson.id} aria-current={selected.lesson.id === lesson.id ? 'page' : undefined} onClick={() => { const next = new URLSearchParams(search); next.set('lesson', lesson.id); setSearch(next); }}><small>{types[lesson.type]} · {['completed', 'waived'].includes(lesson.progress?.status) ? '✓ Đã đạt' : lesson.progress?.status === 'pending_review' ? 'Chờ chấm' : ''}</small>{lesson.title}</button>)}</details>)}</nav>
+      <nav aria-label="Chọn bài học" className="curriculum-outline">{data.labs.map(lab => <details key={lab.id} open={selected.lab.id === lab.id}><summary>{lab.access === 'locked' ? '🔒 ' : ''}Lab {lab.id}: {lab.title}</summary>{lab.lessons.map(lesson => {
+        const locked = lesson.access === 'locked' || !lesson.content;
+        const completed = ['completed', 'waived'].includes(lesson.progress?.status);
+        return <button key={lesson.id} type="button" disabled={locked} aria-current={selected.lesson.id === lesson.id ? 'page' : undefined} aria-label={locked ? `${lesson.title}. Bạn cần hoàn thành bài học trước để mở khóa bài này.` : lesson.title} onClick={() => { const next = new URLSearchParams(search); next.set('lesson', lesson.id); setSearch(next); }}>
+          <small>{locked ? '🔒 Chưa mở' : completed ? '✓ Đã hoàn thành' : types[lesson.type]}{lesson.progress?.status === 'pending_review' ? ' · Chờ chấm' : ''}</small>{lesson.title}
+        </button>;
+      })}</details>)}</nav>
       <article className="curriculum-content" key={`${classId}:${selected.lesson.id}`}><small>Lab {selected.lab.id} · {types[selected.lesson.type]}</small><h2>{selected.lesson.title}</h2>
-        {!selected.lesson.content ? <section className="lms-notice"><h3>🔒 Bài học đang khóa</h3><p>{selected.lab.reason}</p></section> : <LessonContent lesson={selected.lesson} labId={selected.lab.id} classId={classId} preview={preview || !data.learning_path} onRefresh={reload} />}
+        {!selected.lesson.content ? <section className="lms-notice"><h3>🔒 Bài học đang khóa</h3><p>Bạn cần hoàn thành bài học trước để mở khóa bài này.</p>{(selected.lesson.reason || selected.lab.reason) && <small>{selected.lesson.reason || selected.lab.reason}</small>}</section> : <LessonContent lesson={selected.lesson} labId={selected.lab.id} classId={classId} preview={preview || !data.learning_path} onRefresh={reload} />}
       </article>
     </div>}
   </>;
 }
-
-

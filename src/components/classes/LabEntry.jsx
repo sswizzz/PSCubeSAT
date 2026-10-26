@@ -15,8 +15,16 @@ export default function LabEntry({ labId, children }) {
   const { data, error, loading, reload } = useLmsResource(`/api/lms/lab-entry?lab_id=${labId}${lesson ? `&lesson=${encodeURIComponent(lesson)}` : ''}`);
   if (loading) return <LoadingScreen />;
   if (error) return <section className="lms-shell"><Notice error={error} /><button onClick={reload}>Thử lại</button> <Link to="/classes">Lớp của tôi</Link></section>;
-  if (data.target === 'legacy') return children;
+  if (data.target === 'legacy') {
+    return children;
+  }
   if (data.target === 'experience') return <Navigate to={`/preview${lessonQuery(lesson)}`} replace />;
+  if (data.target === 'locked') {
+    return <section className="lms-shell">
+      <Notice error={data.message || 'Bạn cần hoàn thành Lab trước để mở khóa Lab này.'} />
+      <Link to={`/lab${Math.max(0, data.lab_id - 1)}`}>Quay lại Lab trước</Link>
+    </section>;
+  }
   if (data.target === 'class') return <Navigate to={lesson ? `/classes/${data.class_id}/learn${lessonQuery(lesson)}` : `/classes/${data.class_id}/path`} replace />;
   return <section className="lms-shell">
     <header className="lms-heading"><div><h1>Chọn lớp để mở Lab {labId}</h1><p>Bạn đang học Lab {labId} trong nhiều lớp. Tiến độ của mỗi lớp được tính riêng.</p></div></header>

@@ -15,7 +15,12 @@ export default function LearningPathPage() {
     <ol className="learning-path-list">{data.labs.map(lab => <li key={lab.id} className={lab.access === 'locked' ? 'path-locked' : ''}>
       <span className="path-state" aria-label={lab.completed ? 'Đã đạt' : lab.access === 'locked' ? 'Đang khóa' : 'Có thể học'}>{lab.completed ? '✓' : lab.access === 'locked' ? '🔒' : lab.id}</span>
       <section><h2>Lab {lab.id}: {lab.title}</h2><p>{lab.completed_count}/{lab.required_count} bài bắt buộc đã đạt</p><progress value={lab.percent} max={100} aria-label={`Tiến độ Lab ${lab.id}`} />
-        {lab.access === 'locked' ? <p className="path-reason">{lab.reason}</p> : <Link to={`/classes/${classId}/learn?lesson=${encodeURIComponent(lab.lessons.find(item => !['completed', 'waived'].includes(item.status))?.id || lab.lessons[0]?.id || '')}`}>{lab.completed ? 'Ôn lại lab' : 'Mở lab'}</Link>}
+        {lab.access === 'locked' ? <p className="path-reason">{lab.reason}</p> : <Link to={`/classes/${classId}/learn?lesson=${encodeURIComponent(lab.lessons.find(item => item.access === 'available')?.id || lab.lessons[0]?.id || '')}`}>{lab.completed ? 'Ôn lại lab' : 'Mở lab'}</Link>}
+        <ol className="path-lesson-list">{lab.lessons.map(lesson => <li key={lesson.id} className={`path-lesson path-lesson-${lesson.access}`}>
+          <span aria-hidden="true">{lesson.access === 'completed' ? '✓' : lesson.access === 'locked' ? '🔒' : '○'}</span>
+          <span>{lesson.title}</span>
+          <small>{lesson.access === 'completed' ? 'Đã hoàn thành' : lesson.access === 'locked' ? 'Chưa mở' : 'Đang học'}</small>
+        </li>)}</ol>
         {lab.lessons.some(item => item.status === 'pending_review') && <p>⌛ Có bài đang chờ giảng viên chấm.</p>}
       </section>
     </li>)}</ol>

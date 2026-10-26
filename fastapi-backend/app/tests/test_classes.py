@@ -220,9 +220,19 @@ class ClassAPITests(unittest.IsolatedAsyncioTestCase):
             "/api/auth/login",
             "/api/auth/google",
             "/api/auth/google/config",
+            "/api/curriculum/preview",
         }
         tested = []
-        for route in self.app.routes:
+        routes = []
+        pending = list(self.app.routes)
+        while pending:
+            route = pending.pop()
+            original_router = getattr(route, "original_router", None)
+            if original_router is not None:
+                pending.extend(original_router.routes)
+            else:
+                routes.append(route)
+        for route in routes:
             if (
                 not hasattr(route, "dependant")
                 or not hasattr(route, "methods")

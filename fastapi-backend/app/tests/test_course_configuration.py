@@ -209,7 +209,7 @@ class CurriculumAPITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.call(4, "GET", path)).status_code, 403, path)
             self.assertEqual((await self.call(3, "GET", path)).status_code, 200, path)
         source = f"/api/curriculum/exercises/Lab2-01a_Battery_GPIO/source?class_id={self.class_a}"
-        self.assertEqual((await self.call(4, "GET", source)).status_code, 200)
+        self.assertEqual((await self.call(4, "GET", source)).status_code, 403)
         self.assertEqual((await self.call(3, "GET", source)).status_code, 403)
         await self.call(2, "DELETE", f"/api/classes/{self.class_a}/members", {"user_id": 4})
         self.assertEqual((await self.call(4, "GET", source)).status_code, 403)
@@ -268,14 +268,14 @@ class CurriculumAPITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.call(4, "POST", "/api/compile", payload)).status_code, 403)
             payload.update(class_id=self.class_a, lesson_id="Lab2-01a_Battery_GPIO")
             result = await self.call(4, "POST", "/api/compile", payload)
-            self.assertEqual(result.status_code, 200, result.text)
+            self.assertEqual(result.status_code, 403, result.text)
             progress.assert_not_called()
             lower_case_auth = await self.client.post(
                 "/api/compile",
                 json=payload,
                 headers={"Authorization": "bearer " + self.fixture.tokens[4]},
             )
-            self.assertEqual(lower_case_auth.status_code, 200, lower_case_auth.text)
+            self.assertEqual(lower_case_auth.status_code, 403, lower_case_auth.text)
             self.assertEqual((await self.call(3, "POST", "/api/compile", payload)).status_code, 403)
 
 
