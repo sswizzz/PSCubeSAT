@@ -1143,3 +1143,11 @@ h1, h2, h3, h4, h5, h6 { color: var(--text-heading); font-weight: 700; line-heig
   border-color: var(--cubesat-navy);
   background: rgba(10, 65, 116, 0.08);
 }
+/* Mục đã hoàn thành (chưa chọn): dòng phụ cùng tông xanh lá với tiêu đề */
+.sub-lesson-item.is-completed:not(.active) .sub-lesson-copy small {
+  color: #8ff0bd;
+  font-weight: 600;
+}
+.sub-lesson-item.is-completed:not(.active) .sub-lesson-copy code {
+  color: #b9f4d2;
+}
