@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
 from app.models.tables import AccountStatus, User, UserRole
+from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest
 from app.schemas.classes import (
     AdminUserPatch,
     AdminUserResponse,
@@ -12,6 +13,7 @@ from app.schemas.classes import (
     ClassResponse,
     UserPage,
 )
+from app.services.auth import AuthService
 from app.services.classes import paginate, search_filter, set_class_mode, update_user
 from app.services.permissions import require_lms_enabled, require_system_role
 from app.services.reports import admin_dashboard
@@ -20,11 +22,23 @@ admin_user = require_system_role(UserRole.admin)
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
-    dependencies=[
-        Depends(admin_user),
-        Depends(require_lms_enabled),
-    ],
 )
+
+
+@router.post("/signup", response_model=AuthTokenResponse, status_code=201)
+async def admin_signup(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        return await AuthService(db).register_first_admin(req)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post("/login", response_model=AuthTokenResponse)
+async def admin_login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        return await AuthService(db).login_user(req, require_role=UserRole.admin)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
 @router.get("/users", response_model=UserPage)
@@ -34,6 +48,8 @@ async def list_users(
     status: AccountStatus | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    _: None = Depends(require_lms_enabled),
+    _actor: User = Depends(admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     query = select(User).where(User.deleted_at.is_(None))
@@ -51,6 +67,7 @@ async def list_users(
 async def patch_user(
     request: AdminUserUpdate,
     actor: User = Depends(admin_user),
+    _: None = Depends(require_lms_enabled),
     db: AsyncSession = Depends(get_db),
 ):
     return await update_user(
@@ -63,6 +80,7 @@ async def patch_user_by_id(
     user_id: int,
     request: AdminUserPatch,
     actor: User = Depends(admin_user),
+    _: None = Depends(require_lms_enabled),
     db: AsyncSession = Depends(get_db),
 ):
     return await update_user(db, actor, user_id, request.model_dump(exclude_unset=True))
@@ -78,6 +96,7 @@ async def class_mode(
     class_id: int,
     request: ClassModeInput,
     actor: User = Depends(admin_user),
+    _: None = Depends(require_lms_enabled),
     db: AsyncSession = Depends(get_db),
 ):
     return await set_class_mode(db, actor, class_id, request)

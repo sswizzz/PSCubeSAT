@@ -70,8 +70,27 @@ async def update_user(db, actor, user_id, changes):
     ).scalar_one_or_none()
     if target is None:
         raise LMSError(404, "CONFIG_INVALID", "Không tìm thấy tài khoản.")
-    if target.role == UserRole.admin:
-        raise LMSError(403, "FORBIDDEN_ROLE", "Không thể thay đổi tài khoản quản trị viên tại đây.")
+    if target.id == actor.id:
+        raise LMSError(403, "FORBIDDEN_ROLE", "Không thể tự thay đổi quyền hoặc trạng thái tài khoản.")
+    requested_role = changes.get("role", target.role)
+    requested_status = changes.get("status", target.status)
+    if (
+        target.role == UserRole.admin
+        and (requested_role != UserRole.admin or requested_status == AccountStatus.locked)
+    ):
+        active_admins = await db.scalar(
+            select(func.count(User.id)).where(
+                User.role == UserRole.admin,
+                User.status == AccountStatus.active,
+                User.deleted_at.is_(None),
+            )
+        )
+        if active_admins <= 1:
+            raise LMSError(
+                409,
+                "CONFIG_INVALID",
+                "Không thể hạ quyền hoặc khóa quản trị viên cuối cùng.",
+            )
     before = {"role": target.role, "status": target.status}
     for key, value in changes.items():
         setattr(target, key, value)

@@ -353,9 +353,9 @@ class ClassAPITests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 (await self.call(1, "PATCH", "/api/admin/users/1", payload)).status_code, 403
             )
-        self.assertEqual(
-            (await self.call(1, "PATCH", "/api/admin/users/4", {"role": "admin"})).status_code, 422
-        )
+        promoted = await self.call(1, "PATCH", "/api/admin/users/4", {"role": "admin"})
+        self.assertEqual(promoted.status_code, 200, promoted.text)
+        self.assertEqual(promoted.json()["role"], "admin")
 
     async def test_flag_off_hides_new_apis_but_still_locks_accounts(self):
         await self.call(1, "PATCH", "/api/admin/users/4", {"status": "locked"})

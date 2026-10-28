@@ -11,7 +11,7 @@ class InputModel(BaseModel):
 
 
 class AdminUserPatch(InputModel):
-    role: Literal["teacher", "user"] | None = None
+    role: Literal["admin", "teacher", "user"] | None = None
     status: AccountStatus | None = None
 
     @model_validator(mode="after")

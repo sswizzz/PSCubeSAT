@@ -35,10 +35,13 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      await login(email.trim().toLowerCase(), password, remember);
+      const currentUser = await login(email.trim().toLowerCase(), password, remember);
+      if (currentUser?.role === 'admin') {
+        throw new Error('Tài khoản quản trị chỉ được đăng nhập từ trang quản trị.');
+      }
       navigate(loginDestination(location.state?.from), { replace: true });
     } catch (err) {
-      setErrors({ password: err.message });
+      setErrors({ password: err.message || 'Đăng nhập không thành công.' });
     } finally {
       setSubmitting(false);
     }

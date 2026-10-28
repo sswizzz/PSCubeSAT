@@ -10,7 +10,7 @@ export function tokenExpiresAt(token) {
 }
 
 export function loginDestination(value) {
-  if (typeof value !== 'string' || !/^\/(?:lab[0-8]|profile|preview|classes(?:\/[1-9]\d*(?:\/(?:curriculum|learn|path|progress|labs\/[0-8]\/questions))?)?|admin\/users)?(?:\?|#|$)/.test(value)) return '/';
+  if (typeof value !== 'string' || !/^\/(?:lab[0-8]|profile|preview|classes(?:\/[1-9]\d*(?:\/(?:curriculum|learn|path|progress|labs\/[0-8]\/questions))?)?|admin\/(?:dashboard|users))?(?:\?|#|$)/.test(value)) return '/';
   return value;
 }
 

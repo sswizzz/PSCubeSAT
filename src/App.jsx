@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Outlet, Routes, Route, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/auth-api';
 import { loginDestination } from './contexts/auth-session';
 import { SerialProvider } from './contexts/SerialContext';
@@ -12,6 +12,8 @@ import LmsLayout from './components/classes/LmsLayout';
 import LabEntry from './components/classes/LabEntry';
 
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
+const AdminSignUpPage = lazy(() => import('./pages/AdminSignUpPage'));
 const ClassesPage = lazy(() => import('./pages/ClassesPage'));
 const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
 const ClassCurriculumPage = lazy(() => import('./pages/ClassCurriculumPage'));
@@ -35,10 +37,14 @@ const AUTH_ROUTES = ['/login', '/signup'];
 const APP_ROUTES = ['/', '/profile', ...Array.from({ length: 9 }, (_, index) => `/lab${index}`)];
 
 function AuthPage({ children }) {
-  const { loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated, user } = useAuth();
   const location = useLocation();
   if (loading) return <LoadingScreen />;
-  return isAuthenticated ? <Navigate to={loginDestination(location.state?.from)} replace /> : children;
+  if (isAuthenticated) {
+    if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to={loginDestination(location.state?.from)} replace />;
+  }
+  return children;
 }
 
 function ProtectedServices() {
@@ -77,6 +83,11 @@ function LegacyLabRoute({ labId }) {
   return <LegacyLabGate labId={labId}><Component /></LegacyLabGate>;
 }
 
+function LegacyLabAliasRedirect() {
+  const { labId } = useParams();
+  return <Navigate to={`/lab${labId}`} replace />;
+}
+
 function ServiceLayout() {
   const location = useLocation();
   const normalizedPath = location.pathname.length > 1 ? location.pathname.replace(/\/+$/, '') : location.pathname;
@@ -105,6 +116,8 @@ export default function App() {
   return <Suspense fallback={<LoadingScreen />}><Routes>
     <Route path="/login" element={<AuthPage><LoginPage /></AuthPage>} />
     <Route path="/signup" element={<AuthPage><SignUpPage /></AuthPage>} />
+    <Route path="/admin/login" element={<AdminLoginPage />} />
+    <Route path="/admin/signup" element={<AdminSignUpPage />} />
     <Route element={<PublicLayout />}>
       <Route path="/" element={<HomePage />} />
       <Route element={<LmsLayout publicPreview />}>
@@ -115,6 +128,7 @@ export default function App() {
       <Route path="/profile" element={<ProfilePage />} />
       <Route element={<LmsLayout />}>
         <Route path="/classes" element={<ClassesPage />} />
+        <Route path="/classes/lab:labId" element={<LegacyLabAliasRedirect />} />
         <Route path="/classes/:classId" element={<ClassDetailPage />} />
         <Route element={<LmsLayout roles={['admin', 'teacher']} />}>
           <Route path="/classes/:classId/curriculum" element={<ClassCurriculumPage />} />

@@ -47,26 +47,46 @@ function ClassModes() {
 
 export default function AdminDashboardPage() {
   const { data, error, loading, reload } = useLmsResource('/api/admin/dashboard');
-  if (loading) return <p role="status">Đang tổng hợp số liệu…</p>;
-  if (error) return <><Notice error={error} /><button onClick={reload}>Thử lại</button></>;
+  if (loading) return <div className="admin-page-shell"><div className="admin-page-panel"><p role="status">Đang tổng hợp số liệu…</p></div></div>;
+  if (error) return <div className="admin-page-shell"><div className="admin-page-panel"><Notice error={error} /><button onClick={reload}>Thử lại</button></div></div>;
   const total = Object.values(data.users).reduce((sum, item) => sum + Object.values(item).reduce((a, b) => a + b, 0), 0);
-  return <>
-    <header className="lms-heading"><div><h1>Tổng quan hệ thống</h1><p>Cập nhật lúc {new Date(data.generated_at).toLocaleString('vi-VN')}.</p></div><button onClick={reload}>Cập nhật</button></header>
-    <dl className="report-summary">
-      <div><dt>Tài khoản</dt><dd>{total}</dd></div>
-      <div><dt>Lớp đang mở</dt><dd>{data.classes.by_status.active}</dd></div>
-      <div><dt>SV hoạt động 7 ngày</dt><dd>{data.active_students.last_7_days}</dd></div>
-      <div><dt>SV hoạt động 30 ngày</dt><dd>{data.active_students.last_30_days}</dd></div>
-    </dl>
-    <p className="lms-secondary">{data.definitions.active_students}</p>
-    <section className="lms-panel"><h2>Tài khoản theo vai trò</h2><div className="lms-table-wrap"><table><caption className="sr-only">Số tài khoản theo vai trò và trạng thái</caption>
-      <thead><tr><th>Vai trò</th><th>Đang hoạt động</th><th>Đã khóa</th></tr></thead>
-      <tbody>{Object.entries(roles).map(([key, label]) => <tr key={key}><td>{label}</td><td>{data.users[key]?.active || 0}</td><td>{data.users[key]?.locked || 0}</td></tr>)}</tbody></table></div></section>
-    <section className="lms-panel"><h2>Hoàn thành và Lab Test theo lab</h2><p className="lms-secondary">{data.definitions.completion_rate} {data.definitions.average_best_score}</p>
-      {!data.labs.length ? <p>Chưa có lớp đang mở với chương trình đã xuất bản.</p> : <div className="lms-table-wrap"><table><caption className="sr-only">Tỷ lệ hoàn thành và điểm Lab Test trung bình</caption>
-        <thead><tr><th>Lab</th><th>Tỷ lệ hoàn thành</th><th>SV đạt / SV có lab</th><th>Điểm Lab Test TB</th><th>SV đã thi</th></tr></thead>
-        <tbody>{data.labs.map(lab => <tr key={lab.id}><td>Lab {lab.id}</td><td>{percent(lab.completion_rate)}</td><td>{lab.completed_students}/{lab.eligible_students}</td><td>{lab.average_best_score === null ? '—' : `${lab.average_best_score}/5`}</td><td>{lab.scored_students}</td></tr>)}</tbody></table></div>}
+  return <div className="admin-page-shell">
+    <header className="admin-page-header">
+      <div>
+        <span className="admin-page-kicker">Overview</span>
+        <h1>Tổng quan hệ thống</h1>
+      </div>
+      <button type="button" className="admin-primary-btn" onClick={reload}>Cập nhật</button>
+    </header>
+
+    <div className="admin-summary-grid">
+      <article className="admin-card admin-card--accent"><span>Tài khoản</span><strong>{total}</strong><small>Tổng số người dùng</small></article>
+      <article className="admin-card"><span>Lớp đang mở</span><strong>{data.classes.by_status.active}</strong><small>Học theo lớp</small></article>
+      <article className="admin-card"><span>SV hoạt động 7 ngày</span><strong>{data.active_students.last_7_days}</strong><small>Nhịp độ gần đây</small></article>
+      <article className="admin-card"><span>SV hoạt động 30 ngày</span><strong>{data.active_students.last_30_days}</strong><small>Khung 1 tháng</small></article>
+    </div>
+
+    <p className="admin-note">{data.definitions.active_students}</p>
+
+    <section className="admin-panel">
+      <h2>Tài khoản theo vai trò</h2>
+      <div className="lms-table-wrap">
+        <table>
+          <thead><tr><th>Vai trò</th><th>Đang hoạt động</th><th>Đã khóa</th></tr></thead>
+          <tbody>{Object.entries(roles).map(([key, label]) => <tr key={key}><td>{label}</td><td>{data.users[key]?.active || 0}</td><td>{data.users[key]?.locked || 0}</td></tr>)}</tbody>
+        </table>
+      </div>
     </section>
+
+    <section className="admin-panel">
+      <h2>Hoàn thành và Lab Test theo lab</h2>
+      <p className="admin-note">{data.definitions.completion_rate} {data.definitions.average_best_score}</p>
+      {!data.labs.length ? <p className="admin-empty">Chưa có lớp đang mở với chương trình đã xuất bản.</p> : <div className="lms-table-wrap"><table>
+        <thead><tr><th>Lab</th><th>Tỷ lệ hoàn thành</th><th>SV đạt / SV có lab</th><th>Điểm Lab Test TB</th><th>SV đã thi</th></tr></thead>
+        <tbody>{data.labs.map(lab => <tr key={lab.id}><td>Lab {lab.id}</td><td>{percent(lab.completion_rate)}</td><td>{lab.completed_students}/{lab.eligible_students}</td><td>{lab.average_best_score === null ? '—' : `${lab.average_best_score}/5`}</td><td>{lab.scored_students}</td></tr>)}</tbody>
+      </table></div>}
+    </section>
+
     <ClassModes />
-  </>;
+  </div>;
 }

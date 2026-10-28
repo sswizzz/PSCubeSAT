@@ -84,6 +84,26 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const loginAdmin = useCallback(async (email, password, remember = false) => {
+    const data = await request('/api/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    saveAuthToken(data.access_token, remember);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const registerAdmin = useCallback(async (email, password, fullName) => {
+    const data = await request('/api/admin/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, full_name: fullName || undefined }),
+    });
+    saveAuthToken(data.access_token);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const register = useCallback(async (email, password, fullName) => {
     const data = await request('/api/auth/register', {
       method: 'POST',
@@ -132,7 +152,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user, loading, login, loginGoogle, register, logout, isAuthenticated: !!user,
+      user, loading, login, loginAdmin, registerAdmin, loginGoogle, register, logout, isAuthenticated: !!user,
       classMode, legacyAllowed,
       changePassword, markVideoWatched, markDocViewed,
     }}>

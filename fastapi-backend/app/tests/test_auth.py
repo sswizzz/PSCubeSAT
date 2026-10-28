@@ -18,6 +18,7 @@ from app.core.security import create_access_token
 from app.db import get_db
 from app.models.db_models import Base, GoogleIdentity, RevokedToken, User
 from app.routers import compiler, curriculum, health
+from app.routers.admin import router as admin_router
 from app.routers.auth import router
 
 
@@ -35,6 +36,7 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
         self.sessions = async_sessionmaker(self.engine, expire_on_commit=False)
         app = FastAPI()
         app.include_router(router)
+        app.include_router(admin_router)
         for service_router in [compiler.router, curriculum.router, health.router]:
             app.include_router(service_router)
         register_exception_handlers(app)
@@ -86,6 +88,29 @@ class AuthTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(me.status_code, 200)
         self.assertEqual(me.json()["full_name"], "Nguyễn Văn A")
+    async def test_admin_login_requires_admin_route(self):
+        signup = await self.client.post(
+            "/api/admin/signup",
+            json={
+                "email": "admin@ptit.edu.vn",
+                "password": "secret123",
+                "full_name": "Administrator",
+            },
+        )
+        self.assertEqual(signup.status_code, 201, signup.text)
+        self.assertEqual(signup.json()["user"]["role"], "admin")
+
+        response = await self.client.post(
+            "/api/auth/login", json={"email": "admin@ptit.edu.vn", "password": "secret123"}
+        )
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertIn("quản trị", response.json()["message"].lower())
+
+        admin_login = await self.client.post(
+            "/api/admin/login", json={"email": "admin@ptit.edu.vn", "password": "secret123"}
+        )
+        self.assertEqual(admin_login.status_code, 200, admin_login.text)
+        self.assertEqual(admin_login.json()["user"]["role"], "admin")
 
     async def test_duplicate_and_deleted_email(self):
         await self.register()
