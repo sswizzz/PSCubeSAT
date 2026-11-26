@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { request } from '../contexts/auth-api';
 import { ClassFields, Notice, Pagination } from '../components/classes/LmsCommon';
 import { useLmsResource } from '../components/classes/use-lms-resource';
@@ -119,21 +119,15 @@ function ClassEditor({ classroom, onSaved }) {
 }
 
 export default function ClassDetailPage() {
-  const { classId } = useParams();
-  const { data, loading, error, reload } = useLmsResource(`/api/classes/${classId}`);
+  const { classroom: data, reloadClass: reload } = /** @type {{ classroom: any, reloadClass: () => void }} */ (useOutletContext());
   const [message, setMessage] = useState('');
   return <>
-    <Link to="/classes">Về danh sách lớp</Link>
-    {loading ? <p role="status">Đang tải thông tin lớp…</p> : error ? <><Notice error={error} /><button onClick={reload}>Thử lại</button></> : <>
-      <header className="lms-heading"><div><span className="lms-secondary">{data.code}{data.term ? ` · ${data.term}` : ''}</span><h1>{data.name}</h1><p>{data.description || 'Chưa có mô tả lớp.'}</p></div><span className={`lms-status ${data.status}`}>{{ active: 'Đang mở', draft: 'Bản nháp', archived: 'Đã lưu trữ' }[data.status]}</span></header>
-      <Notice message={message} />
-      <div className="lms-actions curriculum-links"><Link to={`/classes/${classId}/path`}>Lộ trình học tập</Link><Link to={`/classes/${classId}/learn`}>Mở chương trình học</Link>{data.can_manage && <><Link to={`/classes/${classId}/curriculum`}>Cấu hình chương trình</Link><Link to={`/classes/${classId}/progress`}>Tiến độ và chấm bài</Link><Link to={`/classes/${classId}/report`}>Báo cáo lớp</Link></>}</div>
-      {data.lms_mode === 'read_only' && <p className="lms-notice" role="status">Lớp đang tạm dừng ghi dữ liệu. Bạn vẫn xem được lộ trình và kết quả đã có; trong thời gian này có thể <Link to="/preview">học nội dung trải nghiệm</Link>.</p>}
-      {data.lms_mode === 'off' && <p className="lms-notice" role="status">Lớp chưa bật chế độ học theo lớp. Sinh viên tiếp tục dùng chương trình học hiện có.</p>}
-      {data.can_manage ? <>
-        {data.status !== 'archived' && <ClassEditor key={`${data.id}:${data.updated_at}`} classroom={data} onSaved={text => { setMessage(text); reload(); }} />}
-        <Members key={data.id} classroom={data} />
-      </> : <section className="lms-panel"><h2>Thông tin tham gia</h2><p>Bạn là sinh viên của lớp này. Liên hệ giảng viên để nhận hướng dẫn học tập.</p>{data.status === 'archived' && <p>Lớp đã được lưu trữ.</p>}</section>}
-    </>}
+    <Notice message={message} />
+    {data.lms_mode === 'read_only' && <p className="lms-notice" role="status">Lớp đang tạm dừng ghi dữ liệu. Bạn vẫn xem được lộ trình và kết quả đã có; trong thời gian này có thể <Link to="/preview">học nội dung trải nghiệm</Link>.</p>}
+    {data.lms_mode === 'off' && <p className="lms-notice" role="status">Lớp chưa bật chế độ học theo lớp. Sinh viên tiếp tục dùng chương trình học hiện có.</p>}
+    {data.can_manage ? <>
+      {data.status !== 'archived' && <ClassEditor key={`${data.id}:${data.updated_at}`} classroom={data} onSaved={text => { setMessage(text); reload(); }} />}
+      <Members key={data.id} classroom={data} />
+    </> : <section className="lms-panel"><h2>Thông tin tham gia</h2><p>Bạn là sinh viên của lớp này. Liên hệ giảng viên để nhận hướng dẫn học tập.</p>{data.status === 'archived' && <p>Lớp đã được lưu trữ.</p>}</section>}
   </>;
 }

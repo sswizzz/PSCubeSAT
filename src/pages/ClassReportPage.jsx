@@ -29,7 +29,7 @@ export default function ClassReportPage() {
   if (error) return <><Notice error={error} /><button onClick={reload}>Thử lại</button></>;
   const labs = data.students[0]?.labs || [];
   return <>
-    <header className="lms-heading"><div><h1>Báo cáo lớp</h1><p>Cập nhật lúc {dateTime(data.generated_at)}. {data.activity_definition}</p></div><div className="lms-actions"><Link to={`/classes/${classId}`}>Về lớp học</Link><Link to={`/classes/${classId}/progress`}>Chấm bài và miễn trừ</Link></div></header>
+    <header className="lms-heading"><div><h1>Báo cáo lớp</h1><p>Cập nhật lúc {dateTime(data.generated_at)}. {data.activity_definition}</p></div><div className="lms-actions"><Link to={`/classes/${classId}/progress`}>Chấm bài và miễn trừ</Link></div></header>
     <dl className="report-summary">
       <div><dt>Sinh viên đang học</dt><dd>{data.summary.active_students}</dd></div>
       <div><dt>Tiến độ trung bình</dt><dd>{data.summary.average_percent}%</dd></div>

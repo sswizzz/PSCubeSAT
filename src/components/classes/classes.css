@@ -649,11 +649,11 @@
   transition: all var(--transition-fast);
 }
 
-.curriculum-links a:nth-child(2) {
-  background: linear-gradient(135deg, #0a4174, #0ea5e9);
+.curriculum-links a.active {
+  background: var(--fig-gradient);
   color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.28);
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
 }
 
 .curriculum-links a:hover {
@@ -664,8 +664,8 @@
   box-shadow: 0 6px 14px rgba(14, 165, 233, 0.14);
 }
 
-.curriculum-links a:nth-child(2):hover {
-  background: linear-gradient(135deg, #08355e, #0284c7);
+.curriculum-links a.active:hover {
+  background: linear-gradient(180deg, #34478c, #17688f);
   color: #ffffff;
 }
 
@@ -1287,6 +1287,8 @@
 .lms-shell:not(.is-learning-shell) .lms-heading .lms-actions a,
 .lms-shell:not(.is-learning-shell) .lms-class-meta a,
 .lms-shell:not(.is-learning-shell) .curriculum-links a { border-radius: 999px; border: 0.3px solid var(--fig-navy); color: var(--fig-navy); background: rgba(255, 255, 255, 0.85); font-weight: 700; }
+.lms-shell:not(.is-learning-shell) .curriculum-links a.active { background: var(--fig-gradient); border-color: transparent; color: #ffffff; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); }
+.lms-shell:not(.is-learning-shell) .curriculum-links a.active:hover { background: linear-gradient(180deg, #34478c, #17688f); color: #ffffff; }
 .lms-shell:not(.is-learning-shell) progress { accent-color: var(--fig-navy); }
 .lms-shell:not(.is-learning-shell) .lms-status { border-radius: 999px; font-weight: 700; }
 

@@ -54,7 +54,7 @@ export default function ClassProgressPage() {
   const labs = data.members[0]?.labs || [];
   const selectedMember = data.members.find(item => String(item.membership_id) === target);
   return <>
-    <header className="lms-heading"><div><h1>Tiến độ và bài chờ chấm</h1><p>Theo dõi sinh viên theo từng lab và duyệt kết quả thực hành.</p></div><Link to={`/classes/${classId}`}>Về lớp học</Link></header>
+    <header className="lms-heading"><div><h1>Tiến độ và bài chờ chấm</h1><p>Theo dõi sinh viên theo từng lab và duyệt kết quả thực hành.</p></div></header>
     <div className="lms-table-wrap"><table><caption className="sr-only">Tiến độ sinh viên theo lab</caption><thead><tr><th>Sinh viên</th>{labs.map(lab => <th key={lab.id}>Lab {lab.id}</th>)}</tr></thead><tbody>{data.members.map(member => <tr key={member.membership_id}><td><strong>{member.full_name || member.email}</strong><span className="lms-secondary">{member.email}{member.membership_status === 'removed' ? ' · Đã xóa khỏi lớp' : ''}</span></td>{member.labs.map(lab => <td key={lab.id} title={lab.reason}>{lab.completed ? '✓ ' : lab.access === 'locked' ? '🔒 ' : ''}{lab.percent}%</td>)}</tr>)}</tbody></table></div>
     {!data.members.length && <p>Chưa có sinh viên trong lớp.</p>}
     <section className="lms-panel"><h2>{data.pending_submissions.length} bài đang chờ chấm</h2>{data.pending_submissions.map(item => <div className="pending-submission" key={item.id}><span>{data.members.find(member => member.membership_id === item.membership_id)?.email} · {item.lesson_id} · v{item.revision}</span><button onClick={() => setReview(item.id)}>Mở và chấm bài</button></div>)}</section>

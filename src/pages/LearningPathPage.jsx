@@ -8,7 +8,7 @@ export default function LearningPathPage() {
   if (loading) return <p role="status">Đang tải lộ trình…</p>;
   if (error) return <><Notice error={error} /><button onClick={reload}>Thử lại</button></>;
   return <>
-    <header className="lms-heading"><div><h1>Lộ trình học tập</h1><p>Hoàn thành các yêu cầu của lab để mở các bước tiếp theo.</p></div><Link to={`/classes/${classId}`}>Về lớp học</Link></header>
+    <header className="lms-heading"><div><h1>Lộ trình học tập</h1><p>Hoàn thành các yêu cầu của lab để mở các bước tiếp theo.</p></div></header>
     <section className="lms-panel path-overview"><div><strong>{data.completed_labs}/{data.total_labs} lab đã đạt</strong><progress value={data.percent} max={100} aria-label="Tiến độ khóa học" /><span>{data.percent}% hoàn thành</span></div>
       {data.continue_lesson_id ? <Link className="path-continue" to={`/classes/${classId}/learn?lesson=${encodeURIComponent(data.continue_lesson_id)}`}>Tiếp tục học</Link> : <p>{data.completed_labs === data.total_labs ? 'Bạn đã hoàn thành chương trình của lớp.' : 'Các bài còn lại đang chờ đánh giá.'}</p>}
     </section>

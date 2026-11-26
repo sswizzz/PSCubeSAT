@@ -10,6 +10,7 @@ import Header from './components/layout/Header';
 import LoadingScreen from './components/common/LoadingScreen';
 import NotFoundPage from './pages/NotFoundPage';
 import LmsLayout from './components/classes/LmsLayout';
+import ClassLayout from './components/classes/ClassLayout';
 import LabEntry from './components/classes/LabEntry';
 
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
@@ -152,16 +153,18 @@ export default function App() {
       <Route element={<LmsLayout />}>
         <Route path="/classes" element={<ClassesPage />} />
         <Route path="/classes/lab:labId" element={<LegacyLabAliasRedirect />} />
-        <Route path="/classes/:classId" element={<ClassDetailPage />} />
-        <Route element={<LmsLayout nested roles={['admin', 'teacher']} />}>
-          <Route path="/classes/:classId/curriculum" element={<ClassCurriculumPage />} />
-          <Route path="/classes/:classId/labs/:labId/questions" element={<QuestionBankPage />} />
-          <Route path="/classes/:classId/lessons/:lessonId/questions" element={<QuestionBankPage />} />
-          <Route path="/classes/:classId/progress" element={<ClassProgressPage />} />
-          <Route path="/classes/:classId/report" element={<ClassReportPage />} />
-        </Route>
         <Route path="/classes/:classId/learn" element={<ClassLearningPage experience={false} />} />
-        <Route path="/classes/:classId/path" element={<LearningPathPage />} />
+        <Route path="/classes/:classId" element={<ClassLayout />}>
+          <Route index element={<ClassDetailPage />} />
+          <Route path="path" element={<LearningPathPage />} />
+          <Route element={<LmsLayout nested roles={['admin', 'teacher']} />}>
+            <Route path="curriculum" element={<ClassCurriculumPage />} />
+            <Route path="labs/:labId/questions" element={<QuestionBankPage />} />
+            <Route path="lessons/:lessonId/questions" element={<QuestionBankPage />} />
+            <Route path="progress" element={<ClassProgressPage />} />
+            <Route path="report" element={<ClassReportPage />} />
+          </Route>
+        </Route>
       </Route>
       <Route element={<LmsLayout roles={['admin']} />}>
         <Route path="/admin/users" element={<AdminUsersPage />} />
