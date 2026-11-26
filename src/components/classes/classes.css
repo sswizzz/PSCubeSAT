@@ -1127,39 +1127,6 @@
   border-color: var(--cubesat-navy);
 }
 
-/* Report Summary KPI Cards */
-.report-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin: 22px 0;
-}
-
-.report-summary div {
-  padding: 20px 22px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #cde0ef;
-  border-radius: 16px;
-  box-shadow: 0 8px 22px -6px rgba(10, 65, 116, 0.07);
-}
-
-.report-summary dt {
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.report-summary dd {
-  margin: 8px 0 0;
-  color: var(--cubesat-ink);
-  font-size: 1.9rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
 @media (max-width: 800px) {
   .curriculum-toolbar {
     flex-wrap: wrap;
@@ -1257,7 +1224,6 @@
 .lms-shell:not(.is-learning-shell) .lms-empty,
 .lms-shell:not(.is-learning-shell) .lms-import-box,
 .lms-shell:not(.is-learning-shell) .curriculum-lab,
-.lms-shell:not(.is-learning-shell) .report-summary div,
 .lms-shell:not(.is-learning-shell) .path-overview {
   background: var(--fig-card); border: 0; border-radius: 28px; box-shadow: var(--fig-shadow);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -1332,7 +1298,6 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 .lms-shell:not(.is-learning-shell) .lms-pagination button { min-width: 44px; }
 .lms-shell:not(.is-learning-shell) fieldset { border: 0; border-radius: 22px; background: var(--fig-surface); }
 .lms-shell:not(.is-learning-shell) .curriculum-prereq-item { border-radius: 16px; }
-.lms-shell:not(.is-learning-shell) .report-summary dd { color: var(--fig-navy); }
 .lms-shell:not(.is-learning-shell) button:focus-visible,
 .lms-shell:not(.is-learning-shell) a:focus-visible,
 .lms-shell:not(.is-learning-shell) input:focus-visible,
@@ -1444,4 +1409,60 @@ body:has(.lms-shell:not(.is-learning-shell)) {
   .lms-shell:not(.is-learning-shell) .admin-page-header, .profile-title { padding: 18px 20px; border-radius: 24px; }
   .lms-shell:not(.is-learning-shell) .admin-panel, .profile-page .card { border-radius: 22px; }
   .header.is-lms .header-search { display: none; }
+}
+
+/* ===== Class report ===== */
+.lms-shell:not(.is-learning-shell) .report-head { align-items: center; margin: 8px 0 18px; padding: 22px 28px; }
+.report-head h1 { margin: 0; font-size: clamp(1.5rem, 2.4vw, 2rem); }
+.report-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; color: var(--fig-navy); opacity: 0.72; font-size: 0.9rem; }
+.report-info { position: relative; }
+.report-info summary { cursor: pointer; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; list-style: none; }
+.report-info summary::-webkit-details-marker { display: none; }
+.report-info > div { margin-top: 8px; max-width: 560px; padding: 12px 16px; background: var(--fig-surface); border-radius: 16px; color: var(--fig-navy); font-size: 0.86rem; line-height: 1.55; }
+.report-info > div p + p { margin-top: 8px; }
+.report-actions { justify-content: flex-end; }
+
+.report-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0 0 18px; padding: 6px 0; border-radius: 28px; background: var(--fig-card); box-shadow: var(--fig-shadow); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.report-stats > div { display: flex; flex-direction: column; gap: 6px; padding: 16px 28px; }
+.report-stats > div + div { border-left: 1px solid rgba(9, 65, 116, 0.16); }
+.report-stats dt { color: var(--fig-navy); opacity: 0.72; font-size: 0.82rem; font-weight: 700; }
+.report-stats dd { margin: 0; color: var(--fig-navy); font-size: 2rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.report-stats .is-zero dd { opacity: 0.35; }
+
+.report-bar { display: block; width: 100%; height: 6px; border-radius: 999px; background: rgba(9, 65, 116, 0.14); overflow: hidden; }
+.report-bar i { display: block; height: 100%; border-radius: inherit; background: var(--fig-gradient); }
+
+.lms-shell:not(.is-learning-shell) .report-table { min-width: 0; border-collapse: separate; border-spacing: 0; }
+.report-table th { text-align: left; white-space: nowrap; font-size: 0.74rem; }
+.report-table th.report-group { text-align: center; border-bottom: 1px solid rgba(9, 65, 116, 0.14); }
+.report-table .report-lab-col { width: 84px; min-width: 84px; text-align: center; }
+.report-table .report-student-col { position: sticky; left: 0; z-index: 1; min-width: 260px; max-width: 320px; background: var(--fig-surface); }
+.lms-shell:not(.is-learning-shell) .report-table th.report-student-col { background: #e6edf6; }
+.report-student { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.report-student > div { min-width: 0; }
+.report-avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--fig-gradient); color: #fff; font-size: 0.9rem; font-weight: 800; }
+.report-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.report-chip { padding: 2px 9px; border-radius: 999px; background: rgba(9, 65, 116, 0.1); color: var(--fig-navy); font-size: 0.72rem; font-style: normal; font-weight: 700; }
+.report-chip.is-muted { background: rgba(9, 65, 116, 0.06); opacity: 0.8; }
+.report-progress { display: flex; align-items: center; gap: 10px; min-width: 120px; }
+.report-progress .report-bar { flex: 1; }
+.report-progress b { min-width: 3ch; font-variant-numeric: tabular-nums; }
+.report-num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.report-num.is-zero { opacity: 0.35; font-weight: 500; }
+.report-num.is-alert { color: #b42318; }
+.report-when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.report-score { display: inline-block; min-width: 46px; padding: 3px 10px; border-radius: 999px; background: rgba(9, 65, 116, 0.08); font-weight: 700; font-variant-numeric: tabular-nums; }
+.report-score.is-done { background: var(--fig-gradient); color: #fff; }
+.report-score.is-empty { background: none; opacity: 0.4; }
+.report-tries { margin-top: 2px; font-size: 0.72rem; }
+
+@media (max-width: 800px) {
+  .lms-shell:not(.is-learning-shell) .report-head { padding: 18px 20px; }
+  .report-actions { justify-content: flex-start; }
+  .report-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-stats > div { padding: 14px 20px; }
+  .report-stats > div:nth-child(3) { border-left: 0; }
+  .report-stats > div:nth-child(n+3) { border-top: 1px solid rgba(9, 65, 116, 0.16); }
+  .report-table .report-student-col { min-width: 200px; }
 }
