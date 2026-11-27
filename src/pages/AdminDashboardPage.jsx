@@ -7,9 +7,9 @@ import { useLmsResource } from '../components/classes/use-lms-resource';
 const roles = { admin: 'Quản trị viên', teacher: 'Giảng viên', user: 'Người dùng' };
 const statuses = { active: 'Đang mở', draft: 'Bản nháp', archived: 'Đã lưu trữ' };
 const modes = {
-  enabled: 'Đang bật học theo lớp',
-  read_only: 'Chỉ đọc — tạm dừng ghi',
-  off: 'Tắt — SV dùng luồng cũ',
+  enabled: 'Bật LMS',
+  read_only: 'Chỉ đọc',
+  off: 'Tắt (luồng cũ)',
 };
 const percent = value => value === null ? '—' : `${Math.round(value * 100)}%`;
 
@@ -24,23 +24,32 @@ function ClassModes() {
     event.preventDefault(); setBusy(true); setNotice({});
     try {
       await request(`/api/admin/classes/${pending.classroom.id}/lms-mode`, { method: 'PATCH', body: JSON.stringify({ lms_mode: pending.mode, reason }) });
-      setNotice({ message: `Đã chuyển lớp ${pending.classroom.code} sang “${modes[pending.mode]}”.` }); setPending(null); setReason(''); reload();
+      setNotice({ message: `Đã chuyển ${pending.classroom.code} sang “${modes[pending.mode]}”.` }); setPending(null); setReason(''); reload();
     } catch (failure) { setNotice({ error: failure.message }); }
     finally { setBusy(false); }
   }
-  return <section className="lms-panel"><h2>Chế độ pilot theo lớp</h2>
-    <p>“Chỉ đọc” là phương án rollback: mọi thao tác ghi của lớp bị chặn, dữ liệu và kết quả được giữ, SV dùng nội dung trải nghiệm. “Tắt” đưa SV của lớp về luồng ổn định cũ.</p>
+  return <section className="lms-panel">
+    <div className="admin-mode-head">
+      <h2>Chế độ theo lớp</h2>
+      <details className="report-info">
+        <summary>Giải thích chế độ</summary>
+        <div>
+          <p><strong>Chỉ đọc:</strong> chặn ghi, giữ dữ liệu, SV học nội dung trải nghiệm.</p>
+          <p><strong>Tắt:</strong> đưa SV về luồng cũ ổn định.</p>
+        </div>
+      </details>
+    </div>
     <Notice {...notice} />{error && <Notice error={error} />}
     {loading ? <p role="status">Đang tải danh sách lớp…</p> : data && <><div className="lms-table-wrap"><table><caption className="sr-only">Chế độ học theo lớp</caption>
       <thead><tr><th>Lớp</th><th>Trạng thái</th><th>Chế độ</th></tr></thead>
       <tbody>{data.items.map(item => <tr key={item.id}>
         <td><Link to={`/classes/${item.id}`}><strong>{item.name}</strong></Link><span className="lms-secondary">{item.code}</span></td>
-        <td>{statuses[item.status]}</td>
-        <td><label className="sr-only" htmlFor={`mode-${item.id}`}>Chế độ lớp {item.code}</label><select id={`mode-${item.id}`} value={pending?.classroom.id === item.id ? pending.mode : item.lms_mode} onChange={event => setPending(event.target.value === item.lms_mode ? null : { classroom: item, mode: event.target.value })}>{Object.entries(modes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
+        <td><span className={`lms-status ${item.status}`}>{statuses[item.status]}</span></td>
+        <td><label className="sr-only" htmlFor={`mode-${item.id}`}>Chế độ lớp {item.code}</label><select className="admin-mode-select" id={`mode-${item.id}`} value={pending?.classroom.id === item.id ? pending.mode : item.lms_mode} onChange={event => setPending(event.target.value === item.lms_mode ? null : { classroom: item, mode: event.target.value })}>{Object.entries(modes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
       </tr>)}</tbody></table></div>
       <Pagination page={page} total={data.total} onChange={next => { setPage(next); setPending(null); }} disabled={busy} /></>}
-    {pending && <form className="lms-confirm" onSubmit={save}><p>Chuyển lớp <strong>{pending.classroom.code}</strong> từ “{modes[pending.classroom.lms_mode]}” sang “{modes[pending.mode]}”? Thay đổi có hiệu lực ngay với mọi phiên đang mở.</p>
-      <label>Lý do (lưu nhật ký)<textarea required minLength={5} maxLength={1000} rows={2} value={reason} onChange={event => setReason(event.target.value)} /></label>
+    {pending && <form className="lms-confirm" onSubmit={save}><p>Chuyển <strong>{pending.classroom.code}</strong> sang “{modes[pending.mode]}”? Có hiệu lực ngay.</p>
+      <label>Lý do<textarea required minLength={5} maxLength={1000} rows={2} value={reason} onChange={event => setReason(event.target.value)} /></label>
       <div className="lms-actions"><button className="lms-primary" disabled={busy}>Xác nhận</button><button type="button" disabled={busy} onClick={() => setPending(null)}>Hủy</button></div></form>}
   </section>;
 }
@@ -51,42 +60,59 @@ export default function AdminDashboardPage() {
   if (error) return <div className="admin-page-shell"><div className="admin-page-panel"><Notice error={error} /><button onClick={reload}>Thử lại</button></div></div>;
   const total = Object.values(data.users).reduce((sum, item) => sum + Object.values(item).reduce((a, b) => a + b, 0), 0);
   return <div className="admin-page-shell">
-    <header className="admin-page-header">
-      <div>
+    <header className="admin-dash-head">
+      <div className="admin-dash-title">
         <h1>Tổng quan hệ thống</h1>
+        <details className="report-info">
+          <summary>Chú thích chỉ số</summary>
+          <div>
+            <p>{data.definitions.active_students}</p>
+            <p>{data.definitions.completion_rate} {data.definitions.average_best_score}</p>
+          </div>
+        </details>
       </div>
       <button type="button" className="admin-primary-btn" onClick={reload}>Cập nhật</button>
     </header>
 
-    <div className="admin-summary-grid">
-      <article className="admin-card admin-card--accent"><span>Tài khoản</span><strong>{total}</strong><small>Tổng số người dùng</small></article>
-      <article className="admin-card"><span>Lớp đang mở</span><strong>{data.classes.by_status.active}</strong><small>Học theo lớp</small></article>
-      <article className="admin-card"><span>SV hoạt động 7 ngày</span><strong>{data.active_students.last_7_days}</strong><small>Nhịp độ gần đây</small></article>
-      <article className="admin-card"><span>SV hoạt động 30 ngày</span><strong>{data.active_students.last_30_days}</strong><small>Khung 1 tháng</small></article>
+    <dl className="report-stats">
+      <div className={total === 0 ? 'is-zero' : ''}><dt>Tài khoản</dt><dd>{total}</dd></div>
+      <div className={data.classes.by_status.active === 0 ? 'is-zero' : ''}><dt>Lớp đang mở</dt><dd>{data.classes.by_status.active}</dd></div>
+      <div className={data.active_students.last_7_days === 0 ? 'is-zero' : ''}><dt>SV hoạt động 7 ngày</dt><dd>{data.active_students.last_7_days}</dd></div>
+      <div className={data.active_students.last_30_days === 0 ? 'is-zero' : ''}><dt>SV hoạt động 30 ngày</dt><dd>{data.active_students.last_30_days}</dd></div>
+    </dl>
+
+    <div className="admin-dash-grid">
+      <section className="admin-panel">
+        <h2>Tài khoản theo vai trò</h2>
+        <div className="lms-table-wrap">
+          <table>
+            <caption className="sr-only">Thống kê số lượng tài khoản theo vai trò và trạng thái</caption>
+            <thead><tr><th>Vai trò</th><th>Hoạt động</th><th>Khóa</th></tr></thead>
+            <tbody>{Object.entries(roles).map(([key, label]) => <tr key={key}><td>{label}</td><td className="report-num">{data.users[key]?.active || 0}</td><td className={`report-num${!(data.users[key]?.locked) ? ' is-zero' : ''}`}>{data.users[key]?.locked || 0}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <h2>Hoàn thành & Lab Test</h2>
+        {!data.labs.length ? <p className="admin-empty">Chưa có lớp mở với giáo trình đã xuất bản.</p> : <div className="lms-table-wrap"><table>
+          <caption className="sr-only">Tỷ lệ hoàn thành và điểm trung bình Lab Test theo từng lab</caption>
+          <thead><tr><th>Lab</th><th>Hoàn thành</th><th>Đạt / Tổng</th><th>Điểm TB</th><th>Đã thi</th></tr></thead>
+          <tbody>{data.labs.map(lab => {
+            const pct = lab.completion_rate === null ? null : Math.round(lab.completion_rate * 100);
+            return (
+              <tr key={lab.id}>
+                <td><strong>Lab {lab.id}</strong></td>
+                <td>{pct === null ? '—' : <div className="report-progress"><span className="report-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></span><b>{percent(lab.completion_rate)}</b></div>}</td>
+                <td className="report-num">{lab.completed_students}/{lab.eligible_students}</td>
+                <td><span className={`report-score${lab.average_best_score === null ? ' is-empty' : ''}`}>{lab.average_best_score === null ? '—' : `${lab.average_best_score}/5`}</span></td>
+                <td className="report-num">{lab.scored_students}</td>
+              </tr>
+            );
+          })}</tbody>
+        </table></div>}
+      </section>
     </div>
-
-    <p className="admin-note">{data.definitions.active_students}</p>
-
-    <section className="admin-panel">
-      <h2>Tài khoản theo vai trò</h2>
-      <div className="lms-table-wrap">
-        <table>
-          <caption className="sr-only">Thống kê số lượng tài khoản theo vai trò và trạng thái</caption>
-          <thead><tr><th>Vai trò</th><th>Đang hoạt động</th><th>Đã khóa</th></tr></thead>
-          <tbody>{Object.entries(roles).map(([key, label]) => <tr key={key}><td>{label}</td><td>{data.users[key]?.active || 0}</td><td>{data.users[key]?.locked || 0}</td></tr>)}</tbody>
-        </table>
-      </div>
-    </section>
-
-    <section className="admin-panel">
-      <h2>Hoàn thành và Lab Test theo lab</h2>
-      <p className="admin-note">{data.definitions.completion_rate} {data.definitions.average_best_score}</p>
-      {!data.labs.length ? <p className="admin-empty">Chưa có lớp đang mở với chương trình đã xuất bản.</p> : <div className="lms-table-wrap"><table>
-        <caption className="sr-only">Tỷ lệ hoàn thành và điểm trung bình Lab Test theo từng lab</caption>
-        <thead><tr><th>Lab</th><th>Tỷ lệ hoàn thành</th><th>SV đạt / SV có lab</th><th>Điểm Lab Test TB</th><th>SV đã thi</th></tr></thead>
-        <tbody>{data.labs.map(lab => <tr key={lab.id}><td>Lab {lab.id}</td><td>{percent(lab.completion_rate)}</td><td>{lab.completed_students}/{lab.eligible_students}</td><td>{lab.average_best_score === null ? '—' : `${lab.average_best_score}/5`}</td><td>{lab.scored_students}</td></tr>)}</tbody>
-      </table></div>}
-    </section>
 
     <ClassModes />
   </div>;

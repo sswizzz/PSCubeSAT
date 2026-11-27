@@ -17,11 +17,11 @@ function Review({ classId, submissionId, onDone }) {
     } catch (err) { setFailure(err.message); }
     finally { setBusy(false); }
   }
-  return <section className="lms-panel"><h2>Chấm bài nộp #{submissionId}</h2>
+  return <section className="lms-panel"><h2>Chấm bài #{submissionId}</h2>
     {loading ? <p>Đang tải mã nguồn…</p> : error ? <Notice error={error} /> : <>
-      <p>{data.lesson_id} · Phiên bản {data.revision}</p><h3>Rubric tại lúc nộp</h3><p>{data.rubric}</p><pre className="submission-code">{data.code}</pre>
-      <label>Nhận xét theo rubric<textarea rows={4} value={feedback} onChange={event => setFeedback(event.target.value)} maxLength={5000} /></label><Notice error={failure} />
-      <div className="lms-actions"><button disabled={busy || !feedback.trim()} onClick={() => grade('approved')}>Duyệt hoàn thành</button><button disabled={busy || !feedback.trim()} onClick={() => grade('changes_requested')}>Yêu cầu sửa</button><button disabled={busy} onClick={onDone}>Đóng</button></div>
+      <p className="lms-secondary">{data.lesson_id} · v{data.revision}</p><h3>Rubric</h3><p>{data.rubric}</p><pre className="submission-code">{data.code}</pre>
+      <label>Nhận xét<textarea rows={3} value={feedback} onChange={event => setFeedback(event.target.value)} maxLength={5000} /></label><Notice error={failure} />
+      <div className="lms-actions"><button className="lms-primary" disabled={busy || !feedback.trim()} onClick={() => grade('approved')}>Duyệt</button><button disabled={busy || !feedback.trim()} onClick={() => grade('changes_requested')}>Yêu cầu sửa</button><button disabled={busy} onClick={onDone}>Đóng</button></div>
     </>}
   </section>;
 }
@@ -54,16 +54,72 @@ export default function ClassProgressPage() {
   const labs = data.members[0]?.labs || [];
   const selectedMember = data.members.find(item => String(item.membership_id) === target);
   return <>
-    <header className="lms-heading"><div><h1>Tiến độ và bài chờ chấm</h1><p>Theo dõi sinh viên theo từng lab và duyệt kết quả thực hành.</p></div></header>
-    <div className="lms-table-wrap"><table><caption className="sr-only">Tiến độ sinh viên theo lab</caption><thead><tr><th>Sinh viên</th>{labs.map(lab => <th key={lab.id}>Lab {lab.id}</th>)}</tr></thead><tbody>{data.members.map(member => <tr key={member.membership_id}><td><strong>{member.full_name || member.email}</strong><span className="lms-secondary">{member.email}{member.membership_status === 'removed' ? ' · Đã xóa khỏi lớp' : ''}</span></td>{member.labs.map(lab => <td key={lab.id} title={lab.reason}>{lab.completed ? '✓ ' : lab.access === 'locked' ? '🔒 ' : ''}{lab.percent}%</td>)}</tr>)}</tbody></table></div>
-    {!data.members.length && <p>Chưa có sinh viên trong lớp.</p>}
-    <section className="lms-panel"><h2>{data.pending_submissions.length} bài đang chờ chấm</h2>{data.pending_submissions.map(item => <div className="pending-submission" key={item.id}><span>{data.members.find(member => member.membership_id === item.membership_id)?.email} · {item.lesson_id} · v{item.revision}</span><button onClick={() => setReview(item.id)}>Mở và chấm bài</button></div>)}</section>
+    <div className="progress-bar-head">
+      <h2>Tiến độ & chấm bài</h2>
+      <div className="progress-stats-inline">
+        <span>{data.members.length} sinh viên</span>
+        <span>{data.pending_submissions.length} chờ chấm</span>
+      </div>
+    </div>
+    {!data.members.length ? <p className="lms-empty">Chưa có sinh viên trong lớp.</p> : (
+      <div className="lms-table-wrap">
+        <table className="progress-table">
+          <caption className="sr-only">Tiến độ sinh viên theo lab</caption>
+          <thead>
+            <tr>
+              <th className="progress-student-col">Sinh viên</th>
+              {labs.map(lab => <th key={lab.id}>Lab {lab.id}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {data.members.map(member => (
+              <tr key={member.membership_id}>
+                <td className="progress-student-col">
+                  <strong>{member.full_name || member.email}</strong>
+                  <span className="lms-secondary">{member.email}{member.membership_status === 'removed' ? ' · Đã xóa' : ''}</span>
+                </td>
+                {member.labs.map(lab => (
+                  <td key={lab.id} title={lab.reason}>
+                    <span className={`progress-pill${lab.completed ? ' is-done' : lab.access === 'locked' ? ' is-locked' : lab.percent > 0 ? ' is-active' : ''}`}>
+                      {lab.completed ? '✓ 100%' : lab.access === 'locked' ? '🔒' : `${lab.percent}%`}
+                    </span>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    {data.pending_submissions.length > 0 ? (
+      <section className="lms-panel">
+        <h2>{data.pending_submissions.length} bài chờ chấm</h2>
+        {data.pending_submissions.map(item => (
+          <div className="pending-submission" key={item.id}>
+            <span>{data.members.find(member => member.membership_id === item.membership_id)?.email} · {item.lesson_id} · v{item.revision}</span>
+            <button onClick={() => setReview(item.id)}>Chấm bài</button>
+          </div>
+        ))}
+      </section>
+    ) : (
+      <p className="progress-empty-inline">Không có bài chờ chấm.</p>
+    )}
     {review && <Review key={review} classId={classId} submissionId={review} onDone={() => { setReview(null); reload(); }} />}
-    <form className="lms-panel" onSubmit={override}><h2>Miễn yêu cầu hoặc mở khóa riêng</h2><p>Mở khóa chỉ cấp quyền truy cập; miễn bài được lưu thành kết quả waived, kèm lý do.</p><div className="lms-form-grid">
-      <label>Sinh viên<select required value={target} onChange={event => { setTarget(event.target.value); setLesson(''); setLabId(''); }}><option value="">Chọn sinh viên</option>{data.members.filter(item => item.membership_status === 'active').map(member => <option value={member.membership_id} key={member.membership_id}>{member.email}</option>)}</select></label>
-      <label>Thao tác<select value={action} onChange={event => setAction(event.target.value)}><option value="waive">Miễn một bài</option><option value="unlock">Mở khóa một lab</option></select></label>
-      {action === 'waive' ? <label>Bài học<select required value={lesson} onChange={event => setLesson(event.target.value)}><option value="">Chọn bài</option>{selectedMember?.labs.flatMap(lab => lab.lessons.map(item => <option value={item.id} key={item.id}>Lab {lab.id}: {item.title}</option>))}</select></label> : <label>Lab<select required value={labId} onChange={event => setLabId(event.target.value)}><option value="">Chọn lab</option>{selectedMember?.labs.map(lab => <option key={lab.id} value={lab.id}>Lab {lab.id}</option>)}</select></label>}
-      <label className="lms-wide">Lý do<textarea required minLength={5} maxLength={1000} rows={3} value={reason} onChange={event => setReason(event.target.value)} /></label>
-    </div><Notice {...notice} /><button disabled={busy}>Lưu thay đổi có lý do</button></form>
+    <details className="lms-panel progress-override">
+      <summary>
+        <h2>Miễn bài / Mở khóa riêng</h2>
+        <span>Tùy chọn</span>
+      </summary>
+      <form onSubmit={override}>
+        <div className="lms-form-grid">
+          <label>Sinh viên<select required value={target} onChange={event => { setTarget(event.target.value); setLesson(''); setLabId(''); }}><option value="">Chọn sinh viên</option>{data.members.filter(item => item.membership_status === 'active').map(member => <option value={member.membership_id} key={member.membership_id}>{member.email}</option>)}</select></label>
+          <label>Thao tác<select value={action} onChange={event => setAction(event.target.value)}><option value="waive">Miễn một bài</option><option value="unlock">Mở khóa lab</option></select></label>
+          {action === 'waive' ? <label>Bài học<select required value={lesson} onChange={event => setLesson(event.target.value)}><option value="">Chọn bài</option>{selectedMember?.labs.flatMap(lab => lab.lessons.map(item => <option value={item.id} key={item.id}>Lab {lab.id}: {item.title}</option>))}</select></label> : <label>Lab<select required value={labId} onChange={event => setLabId(event.target.value)}><option value="">Chọn lab</option>{selectedMember?.labs.map(lab => <option key={lab.id} value={lab.id}>Lab {lab.id}</option>)}</select></label>}
+          <label className="lms-wide">Lý do<textarea required minLength={5} maxLength={1000} rows={2} value={reason} onChange={event => setReason(event.target.value)} /></label>
+        </div>
+        <Notice {...notice} />
+        <button className="lms-primary" disabled={busy}>Lưu</button>
+      </form>
+    </details>
   </>;
 }

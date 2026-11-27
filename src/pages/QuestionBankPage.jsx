@@ -306,7 +306,7 @@ export function BankEditor({ initial, classId, labId, lessonId = null, reload, i
             <div className="bank-row" key={q.id}>
               <button type="button" aria-current={selected === q.id ? 'true' : undefined} onClick={() => select(q)}>
                 <small>Câu {index + 1} · {QUESTION_TYPE_LABELS[q.question_type || 'single_choice']} · {labels[q.status]}</small>
-                {q.prompt}
+                <span className="bank-prompt">{q.prompt}</span>
               </button>
               {draft && <button type="button" className="bank-delete" disabled={busy} title="Xóa câu hỏi" aria-label={`Xóa câu ${index + 1}`} onClick={() => removeQuestion(q, index)}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>
@@ -318,7 +318,7 @@ export function BankEditor({ initial, classId, labId, lessonId = null, reload, i
       </aside>
       <form onSubmit={save} className="bank-editor">
         <h2>{selected ? 'Chỉnh sửa câu hỏi & đáp án' : 'Thêm câu hỏi & đáp án mới'}</h2>
-        <fieldset disabled={busy || !draft}>
+        <fieldset disabled={busy || !draft} className="bank-fields">
           <label>
             Dạng câu hỏi
             <select value={question.question_type || 'single_choice'} onChange={event => changeQuestionType(event.target.value)}>
@@ -331,7 +331,7 @@ export function BankEditor({ initial, classId, labId, lessonId = null, reload, i
           <label>Nội dung câu hỏi (Prompt)<textarea {...field('prompt')} required minLength={10} maxLength={5000} rows={3} placeholder="VD: Câu 1. Mệnh đề toán học nào sau đây là mệnh đề sai?" /></label>
 
           {(!question.question_type || question.question_type === 'single_choice') && <>
-            <p>Chọn đúng 1 đáp án đúng (A, B, C hoặc D):</p>
+            <p className="bank-group-title">Chọn 1 đáp án đúng <small>(A, B, C hoặc D)</small></p>
             {question.choices.map((choice, index) => {
               const letter = String.fromCharCode(65 + index);
               return <div className="bank-choice" key={choice.id}>
@@ -343,7 +343,7 @@ export function BankEditor({ initial, classId, labId, lessonId = null, reload, i
           </>}
 
           {question.question_type === 'multiple_choice' && <>
-            <p>Tích chọn tất cả các phương án đúng (Đáp án hiện tại: <code>{(question.correct_choice_id || '').toUpperCase() || 'Chưa chọn'}</code>):</p>
+            <p className="bank-group-title">Chọn các phương án đúng <small>Hiện tại: <code>{(question.correct_choice_id || '').toUpperCase() || 'Chưa chọn'}</code></small></p>
             {question.choices.map((choice, index) => {
               const letter = String.fromCharCode(65 + index);
               const checked = multiSet.has(choice.id.toLowerCase());
@@ -367,7 +367,7 @@ export function BankEditor({ initial, classId, labId, lessonId = null, reload, i
           </>}
 
           {question.question_type === 'true_false' && <>
-            <p>
+            <p className="bank-group-title">
               Nhập 4 mệnh đề <code>a)</code>, <code>b)</code>, <code>c)</code>, <code>d)</code> và chọn <strong>Đúng (Đ)</strong> hoặc <strong>Sai (S)</strong> cho từng mệnh đề.
               <span className="lms-secondary">Mẹo: Có thể thêm tiền tố <code>[0, TH]</code>, <code>[1, NB]</code>, <code>[2, VD]</code> ở đầu mệnh đề để điều khiển thứ tự đảo (số 0 ở bất kỳ vị trí nào; cùng số đứng gần nhau; số nhỏ đứng trước số lớn).</span>
             </p>

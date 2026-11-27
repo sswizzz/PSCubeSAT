@@ -8,22 +8,22 @@ import { InlineQuestionBank } from './QuestionBankPage';
 
 const labels = { video: 'Video', document: 'Tài liệu', practice: 'Thực hành', quiz: 'Câu hỏi', labtest: 'Lab test' };
 const fields = {
-  video: [['url', 'URL video (HTTPS)', 'url'], ['watch_ratio', 'Tỷ lệ xem cần đạt (0–1)', 'number'], ['duration_seconds', 'Thời lượng video (giây)', 'number'], ['tracking_mode', 'Cách ghi nhận video', 'tracking'], ['confirmation_allowed', 'Cho phép SV xác nhận đã xem', 'boolean']],
-  document: [['markdown', 'Nội dung tài liệu (Markdown)', 'textarea']],
-  practice: [['instructions', 'Hướng dẫn thực hành', 'textarea'], ['rubric', 'Tiêu chí chấm', 'textarea'], ['evidence', 'Minh chứng đầu ra', 'textarea'], ['board', 'Bo mạch', 'board']],
+  video: [['url', 'URL video', 'url'], ['watch_ratio', 'Tỷ lệ xem (0–1)', 'number'], ['duration_seconds', 'Thời lượng (giây)', 'number'], ['tracking_mode', 'Ghi nhận', 'tracking'], ['confirmation_allowed', 'SV tự xác nhận', 'boolean']],
+  document: [['markdown', 'Nội dung (Markdown)', 'textarea']],
+  practice: [['instructions', 'Hướng dẫn', 'textarea'], ['rubric', 'Tiêu chí chấm', 'textarea'], ['evidence', 'Minh chứng đầu ra', 'textarea'], ['board', 'Bo mạch', 'board']],
   quiz: [
-    ['num_questions', 'Số câu rút mỗi lượt', 'number'],
-    ['time_limit_minutes', 'Thời gian làm bài (phút)', 'number'],
-    ['max_attempts', 'Số lượt làm mỗi đợt', 'attempts'],
-    ['cooldown_minutes', 'Thời gian chờ khi hết lượt (phút)', 'cooldown'],
-    ['pass_score', 'Số câu đúng để đạt', 'number'],
+    ['num_questions', 'Số câu/lượt', 'number'],
+    ['time_limit_minutes', 'Thời gian (phút)', 'number'],
+    ['max_attempts', 'Số lượt', 'attempts'],
+    ['cooldown_minutes', 'Chờ hết lượt (phút)', 'cooldown'],
+    ['pass_score', 'Điểm đạt (số câu)', 'number'],
   ],
   labtest: [
-    ['num_questions', 'Số câu rút mỗi lượt', 'number'],
-    ['time_limit_minutes', 'Thời gian làm bài (phút)', 'number'],
-    ['max_attempts', 'Số lượt làm mỗi đợt', 'attempts'],
-    ['cooldown_minutes', 'Thời gian chờ khi hết lượt (phút)', 'cooldown'],
-    ['pass_score', 'Số câu đúng tối thiểu để đạt', 'number'],
+    ['num_questions', 'Số câu/lượt', 'number'],
+    ['time_limit_minutes', 'Thời gian (phút)', 'number'],
+    ['max_attempts', 'Số lượt', 'attempts'],
+    ['cooldown_minutes', 'Chờ hết lượt (phút)', 'cooldown'],
+    ['pass_score', 'Điểm đạt (số câu)', 'number'],
   ],
 };
 
@@ -38,7 +38,9 @@ function fileToBase64(file) {
   });
 }
 
-function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChange, refreshKey, disabled }) {
+function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChange, refreshKey, disabled, labOpened }) {
+  const [open, setOpen] = useState(false);
+  const [everOpened, setEverOpened] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importNotice, setImportNotice] = useState({});
   const { ask: askConfirm, dialog: confirmDialog } = useConfirm();
@@ -89,14 +91,31 @@ function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChan
       && (todo.includes('ngân hàng') || todo.includes('câu hỏi kiểm tra'))
     )
   );
-  return <details className="curriculum-lesson" open={lesson.type === 'labtest'}>
-    <summary><span><small>{labels[lesson.type]}</small><strong>{lesson.title}</strong><code>{lesson.id}</code></span><span>{lesson.enabled ? lesson.required ? 'Bắt buộc' : 'Tùy chọn' : 'Đã tắt'}</span></summary>
+  return <details
+    className="curriculum-lesson"
+    open={open}
+    onToggle={event => {
+      const next = event.currentTarget.open;
+      setOpen(next);
+      if (next) setEverOpened(true);
+    }}
+  >
+    <summary className="curriculum-lesson-summary">
+      <span className="curriculum-lesson-main">
+        <span className={`curriculum-type is-${lesson.type}`}>{labels[lesson.type]}</span>
+        <strong className="curriculum-lesson-title">{lesson.title}</strong>
+      </span>
+      <span className={`curriculum-lesson-state${!lesson.enabled ? ' is-off' : lesson.required ? ' is-req' : ''}`}>
+        {lesson.enabled ? (lesson.required ? 'Bắt buộc' : 'Tùy chọn') : 'Đã tắt'}
+      </span>
+    </summary>
     <fieldset disabled={disabled}>
       <legend className="sr-only">Cấu hình {lesson.title}</legend>
       <div className="curriculum-switches">
-        <label><input type="checkbox" checked={lesson.enabled} onChange={event => onChange({ ...lesson, enabled: event.target.checked })} />Bật bài học</label>
+        <label><input type="checkbox" checked={lesson.enabled} onChange={event => onChange({ ...lesson, enabled: event.target.checked })} />Bật bài</label>
         <label><input type="checkbox" checked={lesson.required} onChange={event => onChange({ ...lesson, required: event.target.checked })} />Bắt buộc</label>
         <label>Thứ tự<input type="number" min={0} max={1000} value={lesson.order_no} onChange={event => onChange({ ...lesson, order_no: Number(event.target.value) })} /></label>
+        <code className="curriculum-lesson-id">{lesson.id}</code>
       </div>
       {todos.length > 0 && <div className="curriculum-todo">{todos.map(todo => <p key={todo}>{todo}</p>)}</div>}
       {lesson.content?.description && <p className="lms-secondary">{lesson.content.description}</p>}
@@ -109,33 +128,29 @@ function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChan
       )}
       {(lesson.type === 'labtest' || lesson.type === 'quiz') && (
         lesson.content.bank_ready ? (
-          <p className="lesson-achieved">✓ Ngân hàng câu hỏi đã được duyệt và xuất bản.</p>
+          <p className="lesson-achieved">✓ Ngân hàng đã xuất bản.</p>
         ) : lesson.content.bank_auto_publishable ? (
           <p className="lesson-achieved">
-            ✓ Đã có {lesson.content.bank_approved_count} câu hỏi sẵn sàng (sẽ tự động xuất bản khi xuất bản cấu hình lớp).
+            ✓ {lesson.content.bank_approved_count} câu sẵn sàng (tự xuất bản cùng lớp).
           </p>
         ) : (lesson.content.bank_draft_count || 0) > 0 ? (
           <p className="lms-notice lms-error" role="status">
-            Đang có {lesson.content.bank_draft_count} câu hỏi nháp chưa duyệt. Hãy duyệt hoặc xóa câu nháp trước khi xuất bản lớp.
+            Còn {lesson.content.bank_draft_count} câu nháp chưa duyệt.
           </p>
         ) : null
       )}
-      {lesson.type === 'video' && <p className="lms-secondary">Video YouTube/Vimeo không đo được đoạn xem: chọn cách ghi nhận "SV xác nhận" và bật cho phép xác nhận. Video .mp4/.webm dùng "Đo đoạn xem" và cần nhập thời lượng.</p>}
-      {lesson.type === 'quiz' && (
-        <p className="lms-secondary">
-          {bankReadyOrAuto
-            ? 'Lớp mới đã nạp sẵn 3 câu hỏi mẫu đã duyệt; giảng viên có thể dùng luôn hoặc thêm/bớt câu hỏi ở khung bên dưới. Sinh viên chỉ hoàn thành bài khi đạt điểm.'
-            : 'Soạn hoặc nạp câu hỏi mẫu ở khung bên dưới trước khi bật bài này. Sinh viên chỉ hoàn thành bài khi đạt điểm.'}
-        </p>
+      {lesson.type === 'video' && <p className="lms-secondary">YouTube/Vimeo: chọn &ldquo;SV xác nhận&rdquo;. MP4/WebM: chọn &ldquo;Đo đoạn xem&rdquo; + thời lượng.</p>}
+      {lesson.type === 'quiz' && !bankReadyOrAuto && (
+        <p className="lms-secondary">Nạp câu hỏi mẫu hoặc soạn câu hỏi bên dưới.</p>
       )}
       {lesson.type === 'document' && <div className="lms-import-box">
-        <label>Nhập từ tệp Word (.docx) hoặc PDF
+        <label>Nhập .docx / .pdf
           <input type="file" accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={importing} onChange={importDocument} />
         </label>
-        <p className="lms-secondary">Tệp tối đa 10 MB. Nội dung được chuyển thành Markdown để bạn xem lại và chỉnh sửa trước khi lưu; hình ảnh không được nhập. {importing && 'Đang đọc tệp…'}</p>
+        <p className="lms-secondary">Tối đa 10 MB, không gồm ảnh. {importing && 'Đang đọc…'}</p>
         <Notice {...importNotice} />
       </div>}
-      <div className="lms-form-grid">{[...fields[lesson.type], ['estimated_minutes', 'Thời lượng dự kiến (phút)', 'number']].map(([key, label, kind]) => {
+      <div className="lms-form-grid">{[...fields[lesson.type], ['estimated_minutes', 'Dự kiến (phút)', 'number']].map(([key, label, kind]) => {
         const hasParam = Object.prototype.hasOwnProperty.call(lesson.params, key);
         const value = hasParam ? lesson.params[key] : (lesson.content[key] ?? '');
         if (kind === 'attempts') {
@@ -188,7 +203,7 @@ function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChan
               value={isUnlimited ? 0 : (value === '' ? '' : value)}
               onChange={event => param(key, event.target.value === '' ? '' : Number(event.target.value))}
             />
-            <small className="lms-secondary">0 = khóa hẳn khi hết lượt; mặc định Lab Test là 30 phút.</small>
+            <small className="lms-secondary">0 = khóa khi hết lượt.</small>
           </label>;
         }
         const numberBounds = key === 'watch_ratio'
@@ -207,7 +222,7 @@ function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChan
         </label>;
       })}</div>
     </fieldset>
-    {(lesson.type === 'labtest' || lesson.type === 'quiz') && (
+    {(lesson.type === 'labtest' || lesson.type === 'quiz') && labOpened && everOpened && (
       <div className="lms-import-box" style={{ marginTop: '16px' }}>
         <InlineQuestionBank
           classId={classId}
@@ -220,6 +235,73 @@ function LessonSettings({ lesson, labId, classId, onChange, onReload, onBankChan
       </div>
     )}
     {confirmDialog}
+  </details>;
+}
+
+function LabPanel({ lab, allLabs, classId, busy, updateLab, onReload, handleBankChange, bankRefreshKey }) {
+  const [open, setOpen] = useState(false);
+  const [everOpened, setEverOpened] = useState(false);
+  const enabledCount = lab.lessons.filter(item => item.enabled).length;
+  return <details
+    className="lms-panel curriculum-lab"
+    open={open}
+    onToggle={event => {
+      const next = event.currentTarget.open;
+      setOpen(next);
+      if (next) setEverOpened(true);
+    }}
+  >
+    <summary>
+      <h2><span className="curriculum-lab-num">Lab {lab.id}</span>{lab.title}</h2>
+      <span className={`curriculum-lab-count${!lab.enabled ? ' is-off' : ''}`}>
+        {!lab.enabled ? 'Đã tắt' : `${enabledCount}/${lab.lessons.length} bài`}
+      </span>
+    </summary>
+    <div className="curriculum-lab-controls">
+      <div className="curriculum-lab-top">
+        <label className="curriculum-toggle">
+          <input type="checkbox" disabled={busy} checked={lab.enabled} onChange={event => updateLab(lab.id, value => ({ ...value, enabled: event.target.checked }))} />
+          <span>Bật lab</span>
+        </label>
+        <details className="curriculum-lab-meta">
+          <summary>Thông tin lab</summary>
+          <dl>
+            <div><dt>Mục tiêu</dt><dd>{lab.objectives}</dd></div>
+            <div><dt>Nhóm nội dung</dt><dd>{lab.groups.join(' → ') || 'Tổng quan'}</dd></div>
+            <div><dt>Minh chứng</dt><dd>{lab.evidence}</dd></div>
+          </dl>
+        </details>
+        <Link className="curriculum-lab-link" to={`/classes/${classId}/labs/${lab.id}/questions`}>Ngân hàng Lab Test →</Link>
+      </div>
+      <div className="curriculum-prereq-row" role="group" aria-label={`Lab tiên quyết cho Lab ${lab.id}`}>
+        <span className="curriculum-prereq-label">Tiên quyết:</span>
+        <div className="curriculum-prereq-chips">
+          {allLabs.filter(item => item.id !== lab.id).map(item => {
+            const checked = lab.prerequisites.includes(item.id);
+            return (
+              <label key={item.id} className={`curriculum-prereq-chip${checked ? ' is-selected' : ''}`} title={`Lab ${item.id}: ${item.title}`}>
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  disabled={busy}
+                  checked={checked}
+                  onChange={event => updateLab(lab.id, value => ({
+                    ...value,
+                    prerequisites: event.target.checked
+                      ? [...new Set([...value.prerequisites, item.id])].sort((a, b) => a - b)
+                      : value.prerequisites.filter(prereqId => prereqId !== item.id),
+                  }))}
+                />
+                <span>Lab {item.id}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+    <div className="curriculum-lesson-list">
+      {lab.lessons.map(lesson => <LessonSettings key={lesson.id} lesson={lesson} labId={lab.id} classId={classId} onReload={onReload} onBankChange={handleBankChange} refreshKey={bankRefreshKey} disabled={busy} labOpened={everOpened} onChange={next => updateLab(lab.id, value => ({ ...value, lessons: value.lessons.map(item => item.id === next.id ? next : item) }))} />)}
+    </div>
   </details>;
 }
 
@@ -359,56 +441,57 @@ function Editor({ initial, classId, onReload }) {
   }
   return <>
     {confirmDialog}
-    <header className="lms-heading"><div><h1>Cấu hình chương trình</h1><p>Bản {config.version || 'mới'} · {config.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}{dirty ? ' · Có thay đổi chưa lưu' : ''}</p></div>
-      {dirty ? <span>Lưu nháp trước khi xem thử.</span> : <Link to={`/classes/${classId}/learn?preview=true`}>Xem như sinh viên</Link>}</header>
-    <p>Bật hoặc tắt bài, chọn yêu cầu hoàn thành và bổ sung học liệu cho lớp. Bài bị tắt không nằm trong chương trình của sinh viên.</p>
+    <div className="curriculum-bar">
+      <div className="curriculum-bar-left">
+        <h2>Cấu hình chương trình</h2>
+        <span className="curriculum-version-pill">
+          v{config.version || 0} · {config.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
+          {dirty && <em className="curriculum-dirty-dot"> · Chưa lưu</em>}
+        </span>
+      </div>
+      <div className="curriculum-bar-actions">
+        <div className="curriculum-path-group" role="group" aria-label="Mẫu lộ trình">
+          <span>Lộ trình:</span>
+          <button type="button" disabled={busy} onClick={() => applyPath('branching')}>Phân nhánh</button>
+          <button type="button" disabled={busy} onClick={() => applyPath('sequential')}>Tuần tự</button>
+        </div>
+        {dirty ? (
+          <span className="curriculum-preview-disabled" title="Lưu nháp trước khi xem thử">Xem thử</span>
+        ) : (
+          <Link className="curriculum-preview-link" to={`/classes/${classId}/learn?preview=true`}>Xem thử</Link>
+        )}
+        <button type="button" disabled={busy || (!dirty && config.version > 0)} onClick={save} className="lms-primary">
+          {busy ? 'Đang lưu…' : 'Lưu nháp'}
+        </button>
+        <button type="button" disabled={busy || dirty || config.status !== 'draft' || !config.version} onClick={() => publish(true)}>
+          Kiểm tra xuất bản
+        </button>
+      </div>
+    </div>
     {config.course_upgrade_available && (
       <div className="lms-notice" role="status" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-        <span>Lớp đang dùng phiên bản giáo trình cũ ({config.course_version_id}) nên có thể thiếu bài mới so với các lớp khác.</span>
+        <span>Đang dùng giáo trình cũ ({config.course_version_id}).</span>
         <button type="button" className="lms-primary" disabled={busy} onClick={upgradeCourseVersion}>
-          Cập nhật lên giáo trình mới nhất
+          Cập nhật giáo trình
         </button>
       </div>
     )}
     <Notice {...notice} />
-    <div className="lms-actions"><span>Mẫu lộ trình:</span><button disabled={busy} onClick={() => applyPath('branching')}>Phân nhánh CubeSAT</button><button disabled={busy} onClick={() => applyPath('sequential')}>Tuần tự Lab 0–8</button></div>
-    {errors.length > 0 && <section className="lms-notice lms-error" role="alert"><h2>Các mục cần sửa</h2><ul>{errors.map((error, i) => <li key={i}>{error.lab_id !== undefined ? `Lab ${error.lab_id}: ` : ''}{error.lesson_id ? `${error.lesson_id}: ` : ''}{error.message}</li>)}</ul><button onClick={onReload}>Tải lại cấu hình từ server</button></section>}
-    <div className="curriculum-toolbar"><button disabled={busy || !dirty && config.version > 0} onClick={save} className="lms-primary">{busy ? 'Đang xử lý…' : 'Lưu nháp'}</button><button disabled={busy || dirty || config.status !== 'draft' || !config.version} onClick={() => publish(true)}>Kiểm tra trước xuất bản</button></div>
-    {impact && <section className="lms-confirm"><p>Cấu hình hợp lệ. <strong>{impact.affected_students} sinh viên</strong> sẽ nhận bản {impact.version}. Bản đã xuất bản được giữ trong lịch sử.{impact.auto_publish_banks?.length > 0 && ` Đồng thời tự động xuất bản ${impact.auto_publish_banks.length} ngân hàng câu hỏi đang ở bản nháp.`}</p><div className="lms-actions"><button disabled={busy} onClick={() => publish(false)}>Xác nhận xuất bản</button><button disabled={busy} onClick={() => setImpact(null)}>Hủy</button></div></section>}
-    {config.labs.map(lab => <details key={lab.id} className="lms-panel curriculum-lab" open={lab.id === 2}>
-      <summary><h2>Lab {lab.id}: {lab.title}</h2><span>{!lab.enabled && 'Lab đã tắt · '}{lab.lessons.filter(item => item.enabled).length}/{lab.lessons.length} bài đang bật</span></summary>
-      <p><Link to={`/classes/${classId}/labs/${lab.id}/questions`}>Soạn ngân hàng và quản lý Lab Test</Link></p><p>{lab.objectives}</p><p><strong>Nhóm nội dung:</strong> {lab.groups.join(' → ') || 'Tổng quan'}</p><p><strong>Minh chứng đầu ra:</strong> {lab.evidence}</p>
-      <fieldset disabled={busy}>
-        <legend>Cấu hình Lab {lab.id}</legend>
-        <div className="curriculum-switches">
-          <label><input type="checkbox" checked={lab.enabled} onChange={event => updateLab(lab.id, value => ({ ...value, enabled: event.target.checked }))} />Bật lab</label>
-        </div>
-        <div className="curriculum-prereq-group" role="group" aria-label={`Lab tiên quyết cho Lab ${lab.id}`}>
-          <span className="curriculum-prereq-title">Lab tiên quyết cần hoàn thành trước</span>
-          <div className="curriculum-prereq-list">
-            {config.labs.filter(item => item.id !== lab.id).map(item => {
-              const checked = lab.prerequisites.includes(item.id);
-              return (
-                <label key={item.id} className={`curriculum-prereq-item${checked ? ' is-selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={event => updateLab(lab.id, value => ({
-                      ...value,
-                      prerequisites: event.target.checked
-                        ? [...new Set([...value.prerequisites, item.id])].sort((a, b) => a - b)
-                        : value.prerequisites.filter(prereqId => prereqId !== item.id),
-                    }))}
-                  />
-                  <span>Lab {item.id}: {item.title}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      </fieldset>
-      {lab.lessons.map(lesson => <LessonSettings key={lesson.id} lesson={lesson} labId={lab.id} classId={classId} onReload={onReload} onBankChange={handleBankChange} refreshKey={bankRefreshKey} disabled={busy} onChange={next => updateLab(lab.id, value => ({ ...value, lessons: value.lessons.map(item => item.id === next.id ? next : item) }))} />)}
-    </details>)}
+    {errors.length > 0 && <section className="lms-notice lms-error" role="alert"><h2>Các mục cần sửa</h2><ul>{errors.map((error, i) => <li key={i}>{error.lab_id !== undefined ? `Lab ${error.lab_id}: ` : ''}{error.lesson_id ? `${error.lesson_id}: ` : ''}{error.message}</li>)}</ul><button onClick={onReload}>Tải lại cấu hình</button></section>}
+    {impact && <section className="lms-confirm"><p>Cấu hình hợp lệ. <strong>{impact.affected_students} sinh viên</strong> sẽ nhận bản {impact.version}.{impact.auto_publish_banks?.length > 0 && ` Kèm ${impact.auto_publish_banks.length} ngân hàng câu hỏi.`}</p><div className="lms-actions"><button disabled={busy} onClick={() => publish(false)}>Xác nhận xuất bản</button><button disabled={busy} onClick={() => setImpact(null)}>Hủy</button></div></section>}
+    {config.labs.map(lab => (
+      <LabPanel
+        key={lab.id}
+        lab={lab}
+        allLabs={config.labs}
+        classId={classId}
+        busy={busy}
+        updateLab={updateLab}
+        onReload={onReload}
+        handleBankChange={handleBankChange}
+        bankRefreshKey={bankRefreshKey}
+      />
+    ))}
   </>;
 }
 
@@ -416,7 +499,7 @@ export default function ClassCurriculumPage() {
   const { classId } = useParams();
   const { data, loading, error, reload } = useLmsResource(`/api/classes/${classId}/curriculum?draft=true`);
   if (loading) return <p role="status">Đang tải cấu hình chương trình…</p>;
-  if (error) return <><Notice error={error} /><button onClick={reload}>Thử lại</button><Link to={`/classes/${classId}`}>Về lớp học</Link></>;
+  if (error) return <><Notice error={error} /><button onClick={reload}>Thử lại</button></>;
   return <Editor key={`${classId}:${data.version}`} initial={data} classId={classId} onReload={reload} />;
 }
 

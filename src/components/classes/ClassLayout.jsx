@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { Notice } from './LmsCommon';
 import { useLmsResource } from './use-lms-resource';
 
@@ -31,21 +31,26 @@ export default function ClassLayout() {
         </span>
       </header>
       <nav className="lms-actions curriculum-links" aria-label="Điều hướng lớp học">
-        <NavLink to={`/classes/${classId}`} end>Thông tin lớp</NavLink>
-        <NavLink to={`/classes/${classId}/path`}>Lộ trình học tập</NavLink>
-        <NavLink to={`/classes/${classId}/learn`}>Mở chương trình học</NavLink>
-        {data.can_manage && (
-          <>
-            <NavLink
-              to={`/classes/${classId}/curriculum`}
-              className={({ isActive }) => (isActive || isQuestionBank ? 'active' : '')}
-            >
-              Cấu hình chương trình
-            </NavLink>
-            <NavLink to={`/classes/${classId}/progress`}>Tiến độ và chấm bài</NavLink>
-            <NavLink to={`/classes/${classId}/report`}>Báo cáo lớp</NavLink>
-          </>
-        )}
+        <div className="curriculum-tabs">
+          <NavLink to={`/classes/${classId}`} end>Thông tin lớp</NavLink>
+          <NavLink to={`/classes/${classId}/path`}>Lộ trình học tập</NavLink>
+          {data.can_manage && (
+            <>
+              <NavLink
+                to={`/classes/${classId}/curriculum`}
+                className={({ isActive }) => (isActive || isQuestionBank ? 'active' : '')}
+              >
+                Cấu hình chương trình
+              </NavLink>
+              <NavLink to={`/classes/${classId}/progress`}>Tiến độ và chấm bài</NavLink>
+              <NavLink to={`/classes/${classId}/report`}>Báo cáo lớp</NavLink>
+            </>
+          )}
+        </div>
+        <Link className="curriculum-launch-btn" to={`/classes/${classId}/learn`}>
+          Mở chương trình học
+          <span className="curriculum-launch-arrow" aria-hidden="true">→</span>
+        </Link>
       </nav>
       <Outlet context={{ classroom: data, reloadClass: reload }} />
     </>

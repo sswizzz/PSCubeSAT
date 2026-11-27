@@ -65,23 +65,40 @@ function Members({ classroom }) {
       if (failure.status === 403) reload();
     } finally { setBusy(false); }
   }
-  return <section className="lms-panel"><h2>Thành viên lớp</h2>
-    {writable && <>
-      <form className="lms-filters" onSubmit={event => { event.preventDefault(); mutate('POST', { email }, 'Sinh viên đã có trong danh sách lớp.'); }}>
-        <label>Email sinh viên<input type="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="Email đã đăng ký tài khoản" /></label><button disabled={busy}>Thêm sinh viên</button>
-      </form>
-      <div className="lms-import-box">
-        <div className="lms-import-head">
-          <strong>Nhập danh sách từ Excel / CSV</strong>
-          <span className="lms-secondary">Cột bắt buộc: <code>email</code>, cột tùy chọn: <code>full_name</code> · <a href="/templates/class-students.xlsx" download>Tải mẫu Excel (.xlsx)</a> · <a href="/templates/class-students.csv" download>Tải mẫu CSV (.csv)</a></span>
-        </div>
-        <form className="lms-filters" onSubmit={importStudents}>
-          <label>Tệp danh sách sinh viên (.xlsx, .csv)<input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required onChange={event => setImportFile(event.target.files?.[0] || null)} /></label>
-          <button disabled={busy || !importFile}>Nhập từ tệp</button>
-        </form>
+  return <section className="lms-panel">
+    <div className="class-members-head">
+      <h2>Thành viên lớp</h2>
+      <div className="class-members-controls">
+        <select aria-label="Lọc trạng thái thành viên" value={status} onChange={event => { setStatus(event.target.value); setPage(1); setRemoving(null); }}>
+          <option value="active">Đang tham gia</option>
+          <option value="removed">Đã xóa khỏi lớp</option>
+        </select>
+        {writable && (
+          <details className="class-import-toggle">
+            <summary>Nhập Excel / CSV</summary>
+            <div className="lms-import-box class-import-body">
+              <div className="lms-import-head">
+                <span className="lms-secondary">
+                  Cột: <code>email</code> (bắt buộc), <code>full_name</code> · <a href="/templates/class-students.xlsx" download>Mẫu .xlsx</a> · <a href="/templates/class-students.csv" download>Mẫu .csv</a>
+                </span>
+              </div>
+              <form className="lms-filters" onSubmit={importStudents}>
+                <label>Tệp danh sách (.xlsx, .csv)
+                  <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required onChange={event => setImportFile(event.target.files?.[0] || null)} />
+                </label>
+                <button disabled={busy || !importFile}>Nhập tệp</button>
+              </form>
+            </div>
+          </details>
+        )}
       </div>
-    </>}
-    <label className="lms-filter-single">Hiển thị<select value={status} onChange={event => { setStatus(event.target.value); setPage(1); setRemoving(null); }}><option value="active">Đang tham gia</option><option value="removed">Đã xóa khỏi lớp</option></select></label>
+    </div>
+    {writable && (
+      <form className="class-add-form" onSubmit={event => { event.preventDefault(); mutate('POST', { email }, 'Sinh viên đã có trong danh sách lớp.'); }}>
+        <input type="email" required aria-label="Email sinh viên" value={email} onChange={event => setEmail(event.target.value)} placeholder="Nhập email sinh viên để thêm nhanh…" />
+        <button className="lms-primary" disabled={busy}>Thêm</button>
+      </form>
+    )}
     <Notice {...notice} />
     {importReport?.skipped?.length > 0 && <div className="lms-table-wrap lms-import-skipped">
       <table>
@@ -90,10 +107,10 @@ function Members({ classroom }) {
         <tbody>{importReport.skipped.map(item => <tr key={`${item.row}:${item.email}`}><td>{item.row}</td><td>{item.email || '—'}</td><td>{item.full_name || '—'}</td><td>{item.reason}</td></tr>)}</tbody>
       </table>
     </div>}
-    {removing && <section className="lms-confirm"><p>Xóa <strong>{removing.email}</strong> khỏi lớp? Tài khoản sẽ mất quyền truy cập lớp; dữ liệu được giữ lại.</p><div className="lms-actions"><button disabled={busy} onClick={() => mutate('DELETE', { user_id: removing.user_id }, 'Đã xóa sinh viên khỏi lớp.')}>Xóa khỏi lớp</button><button disabled={busy} onClick={() => setRemoving(null)}>Hủy</button></div></section>}
+    {removing && <section className="lms-confirm"><p>Xóa <strong>{removing.email}</strong> khỏi lớp? Dữ liệu học tập vẫn được giữ lại.</p><div className="lms-actions"><button disabled={busy} onClick={() => mutate('DELETE', { user_id: removing.user_id }, 'Đã xóa sinh viên khỏi lớp.')}>Xóa</button><button disabled={busy} onClick={() => setRemoving(null)}>Hủy</button></div></section>}
     {loading ? <p role="status">Đang tải thành viên…</p> : error ? <><Notice error={error} /><button onClick={reload}>Thử lại</button></> : <>
-      <div className="lms-table-wrap"><table><caption className="sr-only">Danh sách thành viên lớp</caption><thead><tr><th>Thành viên</th><th>Vai trò</th><th>Thao tác</th></tr></thead><tbody>{data.items.map(member => <tr key={member.id}><td><strong>{member.full_name || 'Chưa có tên'}</strong><span className="lms-secondary">{member.email}</span></td><td>{member.role === 'teacher' ? 'Giảng viên' : 'Sinh viên'}</td><td>{writable && member.role === 'student' && (status === 'active' ? <button disabled={busy} onClick={() => setRemoving(member)}>Xóa khỏi lớp</button> : <button disabled={busy} onClick={() => mutate('POST', { email: member.email }, 'Đã phục hồi sinh viên vào lớp.')}>Thêm lại</button>)}</td></tr>)}</tbody></table></div>
-      {!data.items.length && <p className="lms-empty">Chưa có thành viên trong danh sách này.</p>}
+      <div className="lms-table-wrap"><table><caption className="sr-only">Danh sách thành viên lớp</caption><thead><tr><th>Thành viên</th><th>Vai trò</th><th>Thao tác</th></tr></thead><tbody>{data.items.map(member => <tr key={member.id}><td><strong>{member.full_name || 'Chưa có tên'}</strong><span className="lms-secondary">{member.email}</span></td><td>{member.role === 'teacher' ? 'Giảng viên' : 'Sinh viên'}</td><td>{writable && member.role === 'student' && (status === 'active' ? <button disabled={busy} onClick={() => setRemoving(member)}>Xóa</button> : <button disabled={busy} onClick={() => mutate('POST', { email: member.email }, 'Đã phục hồi sinh viên vào lớp.')}>Thêm lại</button>)}</td></tr>)}</tbody></table></div>
+      {!data.items.length && <p className="lms-empty">Chưa có thành viên.</p>}
       <Pagination page={page} total={data.total} onChange={setPage} disabled={busy} />
     </>}
   </section>;
@@ -113,8 +130,8 @@ function ClassEditor({ classroom, onSaved }) {
     finally { setBusy(false); }
   }
   return <form className="lms-panel" onSubmit={save}><h2>Thông tin lớp</h2><ClassFields value={form} onChange={setForm} /><Notice error={error} />
-    {archive && <p className="lms-confirm">Lưu trữ lớp sẽ dừng chỉnh sửa thông tin và danh sách thành viên. Thành viên còn quyền vẫn xem được lớp.</p>}
-    <div className="lms-actions"><button className="lms-primary" disabled={busy}>{busy ? 'Đang lưu…' : archive ? 'Xác nhận lưu trữ' : 'Lưu thông tin'}</button><button type="button" disabled={busy} onClick={() => setArchive(!archive)}>{archive ? 'Hủy lưu trữ' : 'Lưu trữ lớp'}</button></div>
+    {archive && <p className="lms-confirm">Lưu trữ lớp sẽ khóa chỉnh sửa thông tin và thành viên.</p>}
+    <div className="lms-actions"><button className="lms-primary" disabled={busy}>{busy ? 'Đang lưu…' : archive ? 'Xác nhận lưu trữ' : 'Lưu thông tin'}</button><button type="button" disabled={busy} onClick={() => setArchive(!archive)}>{archive ? 'Hủy' : 'Lưu trữ lớp'}</button></div>
   </form>;
 }
 
@@ -123,11 +140,11 @@ export default function ClassDetailPage() {
   const [message, setMessage] = useState('');
   return <>
     <Notice message={message} />
-    {data.lms_mode === 'read_only' && <p className="lms-notice" role="status">Lớp đang tạm dừng ghi dữ liệu. Bạn vẫn xem được lộ trình và kết quả đã có; trong thời gian này có thể <Link to="/preview">học nội dung trải nghiệm</Link>.</p>}
-    {data.lms_mode === 'off' && <p className="lms-notice" role="status">Lớp chưa bật chế độ học theo lớp. Sinh viên tiếp tục dùng chương trình học hiện có.</p>}
+    {data.lms_mode === 'read_only' && <p className="lms-notice" role="status">Lớp đang tạm dừng ghi dữ liệu. Có thể <Link to="/preview">học nội dung trải nghiệm</Link>.</p>}
+    {data.lms_mode === 'off' && <p className="lms-notice" role="status">Lớp chưa bật chế độ học theo lớp.</p>}
     {data.can_manage ? <>
       {data.status !== 'archived' && <ClassEditor key={`${data.id}:${data.updated_at}`} classroom={data} onSaved={text => { setMessage(text); reload(); }} />}
       <Members key={data.id} classroom={data} />
-    </> : <section className="lms-panel"><h2>Thông tin tham gia</h2><p>Bạn là sinh viên của lớp này. Liên hệ giảng viên để nhận hướng dẫn học tập.</p>{data.status === 'archived' && <p>Lớp đã được lưu trữ.</p>}</section>}
+    </> : <section className="lms-panel"><h2>Thông tin tham gia</h2><p>Bạn đang tham gia lớp với vai trò sinh viên.</p>{data.status === 'archived' && <p className="lms-secondary">Lớp đã được lưu trữ.</p>}</section>}
   </>;
 }
