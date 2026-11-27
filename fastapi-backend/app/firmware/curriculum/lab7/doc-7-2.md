@@ -1,4 +1,4 @@
-# Doc 7.2: Kiến Trúc Phân Lớp Phần Mềm Bay (FSW) & Máy Trạng Thái Hữu Hạn (Mission FSM)
+# Lab 7: Doc 7.2 - Kiến Trúc Phân Lớp Phần Mềm Bay (FSW) & Máy Trạng Thái Hữu Hạn (Mission FSM)
 
 ### 1. Kiến trúc Phân tầng Phần mềm Bay (FSW Layered Architecture)
 Để hệ thống phần mềm có tính module hóa cao, dễ kiểm thử và độc lập phần cứng, phần mềm bay được tổ chức theo 5 tầng phân cấp:
@@ -11,23 +11,7 @@
 ### 2. Máy Trạng Thái Hữu Hạn Điều Khiển Sứ Mệnh (Mission FSM)
 Phần mềm bay được điều hành bởi một Máy Trạng Thái Hữu Hạn (**Finite State Machine - FSM**) chuẩn mực:
 
-```mermaid
-stateDiagram-v2
-    [*] --> STATE_BOOT: Đóng điện từ ống phóng
-    
-    STATE_BOOT --> STATE_DETUMBLE: Hoàn tất 30 phút im lặng & Bung anten
-    STATE_DETUMBLE --> STATE_NORMAL_OPS: Vận tốc góc < 5 deg/s (Thuật toán B-dot)
-    
-    STATE_NORMAL_OPS --> STATE_PAYLOAD_EXEC: Nhận lệnh CMD_TAKE_PHOTO (SOC > 60%)
-    STATE_PAYLOAD_EXEC --> STATE_NORMAL_OPS: Hoàn tất chụp & lưu trữ
-    
-    STATE_NORMAL_OPS --> STATE_POWER_SAVE: Điện áp pin Vbat < 3.55V (SOC < 25%)
-    STATE_POWER_SAVE --> STATE_NORMAL_OPS: Pin phục hồi Vbat > 3.90V (SOC > 60%)
-    
-    STATE_NORMAL_OPS --> STATE_SAFE_MODE: Lỗi phần cứng / Pin < 3.4V / Lệnh khẩn cấp
-    STATE_POWER_SAVE --> STATE_SAFE_MODE: Pin chạm đáy nguy kịch < 3.4V
-    STATE_SAFE_MODE --> STATE_NORMAL_OPS: Lệnh phục hồi từ mặt đất CMD_RECOVER
-```
+![Máy trạng thái nhiệm vụ bay CubeSat FSM](https://raw.githubusercontent.com/PTITCube/PTITCube-Figs/main/png/lab7_mission_fsm.png)
 
 ### 3. Chi tiết 6 Trạng thái Bay Cốt lõi
 - **`STATE_BOOT`:**
@@ -43,3 +27,20 @@ stateDiagram-v2
   - Khi pin yếu ($V_\text{bat} < 3.55\text{V}$, $\text{SOC} < 25\%$), hệ thống tự động sa thải phụ tải (Load Shedding): Tắt camera, tắt GPS, giãn chu kỳ phát Beacon lên 120 giây, giảm xung nhịp CPU xuống 80 MHz.
 - **`STATE_SAFE_MODE`:**
   - Chế độ phòng thủ sống còn khi xảy ra sự cố nghiêm trọng (pin chạm đáy $< 3.4\text{V}$ hoặc cảm biến báo lỗi liên tục), chỉ duy trì nguồn tối thiểu cho bộ thu lệnh vô tuyến để chờ lệnh giải cứu từ mặt đất.
+
+---
+
+### ❓ Câu Hỏi Củng Cố Kiến Thức (Doc 7.2)
+1. **Quy định an toàn quốc tế yêu cầu trạng thái khởi động (`STATE_BOOT`) của phần mềm bay phải duy trì thời gian trễ im lặng bao lâu sau khi rời ống phóng?**
+   - A. Trễ chính xác 1 giây rồi phát sóng ngay
+   - B. Phát sóng liên tục ngay khi công tắc RBF nhả
+   - C. Chờ 24 giờ liên tục không thực hiện lệnh nào
+   - D. Trễ im lặng tối thiểu 30 đến 45 phút trước khi kích hoạt thu phát RF
+
+2. **Máy trạng thái hữu hạn (Mission FSM) của phần mềm bay chuyển từ trạng thái `DETUMBLE` sang `MISSION` khi nào?**
+   - A. Khi dung lượng pin sụt giảm dưới 20%
+   - B. Khi vận tốc góc quay của vệ tinh trên các trục giảm xuống dưới ngưỡng an toàn
+   - C. Khi có tín hiệu ngắt nguồn khẩn cấp từ trạm mặt đất
+   - D. Khi thẻ nhớ MicroSD đã ghi đầy một nửa dung lượng
+
+---

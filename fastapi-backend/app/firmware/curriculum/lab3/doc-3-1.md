@@ -1,4 +1,4 @@
-# Doc 3.1: Giao thức Giao tiếp SPI Tốc độ cao & Kiến trúc Hệ thống Tập tin FAT32 trên Thẻ MicroSD
+# Lab 3: Doc 3.1 - Giao thức Giao tiếp SPI Tốc độ cao & Kiến trúc Hệ thống Tập tin FAT32 trên Thẻ MicroSD
 
 ### 1. Vai trò của Phân hệ C&DH và Hệ thống Hộp Đen (Black Box Storage)
 Phân hệ Xử lý Dữ liệu và Lệnh (**Command and Data Handling - C&DH**) là xương sống luân chuyển thông tin của vệ tinh CubeSat. Trong một vòng quỹ đạo kéo dài 95 phút, vệ tinh chỉ có khoảng thời gian kết nối với trạm mặt đất từ 8 đến 12 phút (Ground Pass). Trong suốt hơn 80 phút còn lại, vệ tinh hoàn toàn cô độc ngoài vùng phủ sóng. Phân hệ C&DH phải đảm đương:
@@ -6,27 +6,7 @@ Phân hệ Xử lý Dữ liệu và Lệnh (**Command and Data Handling - C&DH**
 - **Lưu trữ tệp dữ liệu sứ mệnh:** Lưu giữ các tệp ảnh chụp Trái Đất và số liệu quan trắc khoa học để sẵn sàng trút dữ liệu (Data Dump) khi bay qua trạm mặt đất.
 - **Nhật ký sự kiện (Flight Event Log):** Ghi lại chi tiết thời điểm xuất hiện các cảnh báo bất thường, lỗi vi xử lý, và các lần phục hồi hệ thống.
 
-```mermaid
-flowchart LR
-    subgraph Master ["Master Device (ESP32 OBC)"]
-        SCK_M["SCK (Chân Xung nhịp Đồng bộ)"]
-        MOSI_M["MOSI (Master Out Slave In)"]
-        MISO_M["MISO (Master In Slave Out)"]
-        CS_M["CS / SS (Chip Select Mức Thấp)"]
-    end
-    
-    subgraph Slave ["Slave Device (Thẻ nhớ MicroSD)"]
-        SCK_S["CLK"]
-        MOSI_S["DI"]
-        MISO_S["DO"]
-        CS_S["CS"]
-    end
-    
-    SCK_M -->|Đồng hồ xung nhịp phần cứng| SCK_S
-    MOSI_M -->|Dữ liệu từ OBC sang thẻ nhớ| MOSI_S
-    MISO_S -->|Dữ liệu từ thẻ nhớ về OBC| MISO_M
-    CS_M -->|Chọn thiết bị tích cực mức LOW| CS_S
-```
+![Sơ đồ kết nối bus SPI Full-Duplex](https://raw.githubusercontent.com/PTITCube/PTITCube-Figs/main/png/lab3_spi_connection.png)
 
 ### 2. Giao thức Truyền thông Đồng bộ SPI (Serial Peripheral Interface)
 Chuẩn giao tiếp **SPI** là một bus truyền thông nối tiếp đồng bộ 4 dây, hoạt động theo mô hình Master-Slave ở chế độ song công toàn phần (Full-duplex):
@@ -49,3 +29,20 @@ Chuẩn giao tiếp **SPI** là một bus truyền thông nối tiếp đồng b
   - Nếu vệ tinh bất ngờ bị sụt áp (Brownout) hoặc bị reset bởi Watchdog Timer trong khi mảng đệm RAM chưa đầy 512 bytes, toàn bộ số liệu đo đạc gần nhất sẽ biến mất hoàn toàn!
   - Thậm chí nghiêm trọng hơn: Bảng phân bổ tệp (**File Allocation Table - FAT**) chưa kịp cập nhật kích thước tệp mới sẽ khiến tệp tin bị hỏng (File Corruption) và không thể đọc lại.
   - **Quy tắc Bắt buộc:** Sau mỗi chu kỳ ghi dữ liệu định kỳ, phần mềm bay bắt buộc phải gọi hàm `file.flush()` để ép buộc vi điều khiển xả sạch bộ đệm RAM xuống ô nhớ vật lý của thẻ nhớ ngay lập tức.
+
+---
+
+### ❓ Câu Hỏi Củng Cố Kiến Thức (Doc 3.1)
+1. **Bus giao tiếp SPI 4 dây chuẩn kết nối thẻ nhớ MicroSD trên kit OBC bao gồm các chân tín hiệu nào?**
+   - A. SDA, SCL, INT, RST
+   - B. TX, RX, CTS, RTS
+   - C. CS, SCK, MISO, MOSI
+   - D. D0, D1, D2, CLK
+
+2. **Khi ghi dữ liệu viễn trắc vào thẻ MicroSD, tại sao sau khi gọi `dataFile.println()` bắt buộc phải gọi `dataFile.flush()`?**
+   - A. Để đẩy dữ liệu từ đệm RAM xuống thẻ nhớ vật lý ngay lập tức
+   - B. Để xóa sạch toàn bộ nội dung vừa ghi
+   - C. Để đóng tệp tin và giải phóng con trỏ bộ nhớ
+   - D. Để chuyển đổi định dạng tệp tin từ nhị phân sang văn bản
+
+---

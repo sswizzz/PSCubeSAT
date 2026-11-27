@@ -1,30 +1,11 @@
-# Doc 7.1: Năm Thách Thức Kỹ Thuật Khốc Liệt Khi Tích Hợp Đa Phân Hệ vào Khối 1U
+# Lab 7: Doc 7.1 - Năm Thách Thức Kỹ Thuật Khốc Liệt Khi Tích Hợp Đa Phân Hệ vào Khối 1U
 
 ### 1. Tổng quan Bài toán Tích hợp Hệ thống (System Integration)
 Giai đoạn Tích hợp Hệ thống là thời điểm quyết định của toàn bộ dự án vệ tinh, chuyển hóa các phân hệ phần cứng và phần mềm hoạt động riêng rẽ (OBC, EPS, C&DH, Sensors, COM, Khung cơ khí) thành một **thực thể vệ tinh duy nhất, tự chủ, bền bỉ và đồng bộ** có khả năng hoàn thành xuất sắc sứ mệnh trong môi trường khắc nghiệt ngoài không gian.
 
 Khi nhồi nhét tất cả các phân hệ vào không gian chật hẹp của khối lập phương 1U (10 × 10 × 11.35 cm), kỹ sư tích hợp phải đối mặt và giải quyết đồng thời 5 thách thức kỹ thuật lớn:
 
-```mermaid
-flowchart TD
-    subgraph IntegrationChallenges ["⚠️ 5 THÁCH THỨC TÍCH HỢP HỆ THỐNG VỆ TINH"]
-        C1["1. Xung đột Tài nguyên Bus & Vi xử lý
-Tranh chấp bus I2C giữa BMP280, MPU6500, MAX17048
-Tranh chấp bus SPI giữa Thẻ nhớ và Flash"]
-        C2["2. Nhiễu Tương thích Điện từ Nội bộ (EMI/EMC)
-Sóng hài máy phát LoRa 433MHz & XCLK 20MHz Camera
-chèn ép làm tê liệt bộ thu định vị GNSS L1"]
-        C3["3. Chia sẻ Nguồn & Sụt áp Đột biến (Brownout)
-Đỉnh tải dòng điện khi đồng thời Chụp ảnh + Ghi thẻ + Phát LoRa
-vượt quá 500mA làm sập nguồn CPU"]
-        C4["4. Bẫy Nhiệt Khép kín Trong Không gian Kín
-Không có đối lưu không khí trong chân không
-Nhiệt bị giam giữ làm quá nhiệt chip, đóng băng pin"]
-        C5["5. Tính Tất định Thời gian thực & Ngăn ngừa Deadlock
-Hệ điều hành đa nhiệm FreeRTOS không được trễ deadline
-Tránh bế tắc tài nguyên (Deadlock) giữa các luồng"]
-    end
-```
+![5 thách thức tích hợp hệ thống CubeSat](https://raw.githubusercontent.com/PTITCube/PTITCube-Figs/main/png/lab7_integration_challenges.png)
 
 ### 2. Chi tiết Giải pháp Kỹ thuật Khắc phục 5 Thách thức
 1. **Giải quyết Xung đột Bus I2C/SPI:**
@@ -42,3 +23,20 @@ Tránh bế tắc tài nguyên (Deadlock) giữa các luồng"]
 5. **Tính Tất định Thời gian thực & Ngăn ngừa Deadlock:**
    - *Vấn đề:* Phần mềm điều hành bay phải xử lý đồng thời nhiều luồng tín hiệu (chu kỳ đọc cảm biến 10Hz, ghi thẻ nhớ 1Hz, phát beacon 30s, ngắt nhận viễn lệnh vô tuyến bất kỳ lúc nào). Nếu thiết kế khóa không cẩn thận sẽ xảy ra hiện tượng kẹt bế tắc Deadlock.
    - *Giải pháp:* Thiết kế cấu trúc phân cấp khóa tài nguyên cố định và áp dụng kỹ thuật FreeRTOS Queue truyền dữ liệu bất đồng bộ.
+
+---
+
+### ❓ Câu Hỏi Củng Cố Kiến Thức (Doc 7.1)
+1. **Một trong những thách thức kỹ thuật lớn nhất khi tích hợp toàn bộ các phân hệ vào không gian 1U là gì?**
+   - A. Khó tìm kiếm cổng kết nối màn hình ngoài
+   - B. Không thể gắn được nút nhấn khởi động
+   - C. Can nhiễu điện từ (EMI) giữa module phát sóng LoRa và các cảm biến nhạy
+   - D. Bộ nhớ vi điều khiển quá nhỏ không chứa đủ tên sinh viên
+
+2. **Bài toán cân đối ngân sách năng lượng (Power Budget) trong pha tích hợp hệ thống đòi hỏi:**
+   - A. Tổng năng lượng tấm pin tạo ra trong chu kỳ bay phải lớn hơn tổng tiêu thụ của các tải
+   - B. Pin phải luôn được nạp đầy 100% trong suốt thời gian bay
+   - C. Vệ tinh phải tắt hoàn toàn bộ vi xử lý khi đi vào vùng tối
+   - D. Chỉ cấp điện cho phân hệ truyền thông còn tắt toàn bộ cảm biến
+
+---

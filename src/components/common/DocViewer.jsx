@@ -76,6 +76,19 @@ function ExpandIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M3.5 3.5l9 9M12.5 3.5l-9 9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function MermaidDiagram({ code }) {
   const reactId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const [svg, setSvg] = useState('');
@@ -296,9 +309,14 @@ function MermaidDiagram({ code }) {
               </button>
             </>
           )}
-          <button type="button" className="doc-mermaid-btn doc-mermaid-btn--primary" onClick={openModal}>
+          <button
+            type="button"
+            className="doc-mermaid-btn doc-mermaid-btn--primary doc-mermaid-btn--icon"
+            aria-label="Phóng to"
+            title="Phóng to"
+            onClick={openModal}
+          >
             <ExpandIcon />
-            <span>Phóng to</span>
           </button>
         </div>
       </div>
@@ -368,11 +386,12 @@ function MermaidDiagram({ code }) {
                   </button>
                   <button
                     type="button"
-                    className="doc-mermaid-btn doc-mermaid-btn--close"
-                    aria-label="Đóng cửa sổ phóng to"
+                    className="doc-mermaid-btn doc-mermaid-btn--close doc-mermaid-btn--icon"
+                    aria-label="Đóng"
+                    title="Đóng"
                     onClick={() => setIsModalOpen(false)}
                   >
-                    ✕ Đóng
+                    <CloseIcon />
                   </button>
                 </div>
               </div>
@@ -491,7 +510,198 @@ function CodeBlock({ code, language = '' }) {
   );
 }
 
+function DocImage({ src, alt = '', title = '' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [naturalDims, setNaturalDims] = useState(/** @type {{ width: number, height: number } | null} */ (null));
+  const [isDragging, setIsDragging] = useState(false);
+  const modalCanvasRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0 });
+
+  useEffect(() => {
+    if (!isOpen || typeof document === 'undefined') return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const rafId = window.requestAnimationFrame(() => {
+      const canvas = modalCanvasRef.current;
+      if (canvas && naturalDims) {
+        setZoom(computeFitZoom(naturalDims, canvas.clientWidth, canvas.clientHeight));
+      }
+    });
+
+    /** @param {KeyboardEvent} event */
+    const onKeyDown = event => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, naturalDims]);
+
+  const openModal = useCallback(() => {
+    setZoom(1);
+    setIsOpen(true);
+  }, []);
+
+  const handleZoomIn = useCallback(() => setZoom(z => clampZoom(z + 0.25)), []);
+  const handleZoomOut = useCallback(() => setZoom(z => clampZoom(z - 0.25)), []);
+  const handleZoomActual = useCallback(() => setZoom(1), []);
+  const handleZoomFit = useCallback(() => {
+    const canvas = modalCanvasRef.current;
+    if (!canvas || !naturalDims) {
+      setZoom(1);
+      return;
+    }
+    setZoom(computeFitZoom(naturalDims, canvas.clientWidth, canvas.clientHeight));
+  }, [naturalDims]);
+
+  /** @param {import('react').WheelEvent<HTMLDivElement>} event */
+  const handleModalWheel = useCallback(event => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 0.15 : -0.15;
+    setZoom(z => clampZoom(z + delta));
+  }, []);
+
+  /** @param {import('react').MouseEvent<HTMLDivElement>} event */
+  const startDrag = useCallback(event => {
+    if (event.button !== 0) return;
+    const container = modalCanvasRef.current;
+    if (!container) return;
+    dragRef.current = {
+      active: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+    };
+    setIsDragging(true);
+  }, []);
+
+  /** @param {import('react').MouseEvent<HTMLDivElement>} event */
+  const moveDrag = useCallback(event => {
+    const state = dragRef.current;
+    if (!state.active) return;
+    const container = modalCanvasRef.current;
+    if (!container) return;
+    event.preventDefault();
+    container.scrollLeft = state.scrollLeft - (event.clientX - state.startX);
+    container.scrollTop = state.scrollTop - (event.clientY - state.startY);
+  }, []);
+
+  const endDrag = useCallback(() => {
+    if (!dragRef.current.active) return;
+    dragRef.current.active = false;
+    setIsDragging(false);
+  }, []);
+
+  if (!src) return null;
+  const caption = alt || title || 'Hình minh họa';
+
+  return (
+    <span className="doc-image-card">
+      <span className="doc-image-bar">
+        <span className="doc-image-caption">{caption}</span>
+        <button
+          type="button"
+          className="doc-mermaid-btn doc-mermaid-btn--primary doc-mermaid-btn--icon"
+          aria-label="Phóng to"
+          title="Phóng to"
+          onClick={openModal}
+        >
+          <ExpandIcon />
+        </button>
+      </span>
+      <span className="doc-image-frame">
+        <img
+          src={src}
+          alt={alt}
+          title={title || 'Bấm để phóng to'}
+          className="doc-image-img"
+          loading="lazy"
+          onClick={openModal}
+          onLoad={event => {
+            const el = event.currentTarget;
+            if (el.naturalWidth && el.naturalHeight) {
+              setNaturalDims({ width: el.naturalWidth, height: el.naturalHeight });
+            }
+          }}
+        />
+      </span>
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="doc-mermaid-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={caption}
+          onClick={event => {
+            if (event.target === event.currentTarget) setIsOpen(false);
+          }}
+        >
+          <div className="doc-mermaid-modal">
+            <div className="doc-mermaid-modal-header">
+              <div className="doc-mermaid-modal-title">
+                <strong>{caption}</strong>
+                <span>Kéo chuột để di chuyển · Ctrl + cuộn để thu phóng</span>
+              </div>
+              <div className="doc-mermaid-modal-controls">
+                <button type="button" className="doc-mermaid-btn" onClick={handleZoomOut} aria-label="Thu nhỏ ảnh">−</button>
+                <span className="doc-mermaid-zoom-value">{Math.round(zoom * 100)}%</span>
+                <button type="button" className="doc-mermaid-btn" onClick={handleZoomIn} aria-label="Phóng to ảnh">+</button>
+                <button type="button" className="doc-mermaid-btn" onClick={handleZoomActual}>100%</button>
+                <button type="button" className="doc-mermaid-btn" onClick={handleZoomFit}>Vừa khung</button>
+                <button
+                  type="button"
+                  className="doc-mermaid-btn doc-mermaid-btn--close doc-mermaid-btn--icon"
+                  aria-label="Đóng"
+                  title="Đóng"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+            </div>
+            <div
+              ref={modalCanvasRef}
+              className={`doc-mermaid-modal-canvas ${isDragging ? 'is-dragging' : ''}`}
+              onWheel={handleModalWheel}
+              onMouseDown={startDrag}
+              onMouseMove={moveDrag}
+              onMouseUp={endDrag}
+              onMouseLeave={endDrag}
+            >
+              <div
+                className="doc-mermaid-modal-stage"
+                style={naturalDims
+                  ? { width: `${Math.round(naturalDims.width * zoom)}px`, minWidth: `${Math.round(naturalDims.width * zoom)}px` }
+                  : { width: `${Math.round(zoom * 100)}%` }}
+              >
+                <img src={src} alt={alt} className="doc-image-modal-img" draggable={false} />
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </span>
+  );
+}
+
 const markdownComponents = {
+  img({ src, alt, title }) {
+    return <DocImage src={src} alt={alt || ''} title={title || ''} />;
+  },
+  table({ children, ...props }) {
+    return (
+      <div className="doc-table-wrap">
+        <table {...props}>{children}</table>
+      </div>
+    );
+  },
   pre({ children, ...props }) {
     const first = Children.toArray(children).find(child => isValidElement(child));
     if (isValidElement(first)) {

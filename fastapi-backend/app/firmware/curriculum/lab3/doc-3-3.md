@@ -1,4 +1,4 @@
-# Doc 3.3: Tranh Chấp Tài Nguyên, Cơ Chế Khóa Bảo Vệ & Kỹ Thuật Ngăn Ngừa Deadlock
+# Lab 3: Doc 3.3 - Tranh Chấp Tài Nguyên, Cơ Chế Khóa Bảo Vệ & Kỹ Thuật Ngăn Ngừa Deadlock
 
 ### 1. Hiện tượng Tranh chấp Tài nguyên (Race Condition)
 Khi hệ thống chạy đa tác vụ, các tài nguyên phần cứng duy nhất (như bus SPI của thẻ nhớ, cổng Serial Monitor, bus I2C) trở thành **Tài nguyên Dùng chung (Shared Resources)**:
@@ -11,20 +11,7 @@ Khi hệ thống chạy đa tác vụ, các tài nguyên phần cứng duy nhấ
 - Sau khi hoàn thành việc ghi dữ liệu, tác vụ bắt buộc phải nhả khóa: `xSemaphoreGive(xSPIMutex)`.
 - Các tác vụ khác muốn truy cập tài nguyên trong thời gian này sẽ tự động chuyển sang trạng thái chờ (Blocked), giải phóng chu kỳ CPU cho các công việc khác.
 
-```mermaid
-sequenceDiagram
-    participant TaskA as Task Ưu tiên Thấp (Ghi Thẻ nhớ)
-    participant Mutex as Khóa Mutex (SPI_Mutex)
-    participant TaskB as Task Ưu tiên Cao (Cảm biến)
-    
-    TaskA->>Mutex: Xin lấy khóa (xSemaphoreTake) - THÀNH CÔNG
-    Note over TaskA: Đang thực hiện ghi dữ liệu qua bus SPI...
-    TaskB->>Mutex: Xin lấy khóa (xSemaphoreTake) - BỊ TỪ CHỐI
-    Note over TaskB: Tự động chuyển sang trạng thái Blocked (Chờ)
-    TaskA->>Mutex: Trả khóa (xSemaphoreGive)
-    Mutex->>TaskB: Trao quyền sở hữu khóa
-    Note over TaskB: Thức dậy và thực thi truy cập SPI ngay lập tức
-```
+![Đảo ngược ưu tiên và cơ chế khóa Mutex](https://raw.githubusercontent.com/PTITCube/PTITCube-Figs/main/png/lab3_priority_inversion_mutex.png)
 
 ### 3. Vấn đề Nghịch đảo Mức Ưu tiên (Priority Inversion) & Cơ chế Thừa kế Ưu tiên (Priority Inheritance)
 - **Sự cố Lịch sử Mars Pathfinder (1997):** Tàu đổ bộ Sao Hỏa liên tục bị reset phần mềm bí ẩn giữa sa mạc Sao Hỏa do một lỗi thiết kế RTOS kinh điển:
@@ -39,3 +26,20 @@ Xảy ra khi hai tác vụ cùng chờ tài nguyên mà tác vụ kia đang nắ
 - `Task 2` đang giữ khóa Mutex B và muốn lấy khóa Mutex A.
 - Hậu quả: Cả hai tác vụ bị treo vĩnh viễn, kéo sập hệ điều hành.
 - **Quy tắc Phòng ngừa:** Luôn luôn chiếm giữ các khóa theo một thứ tự phân cấp cố định trong toàn bộ dự án phần mềm.
+
+---
+
+### ❓ Câu Hỏi Củng Cố Kiến Thức (Doc 3.3)
+1. **Trong hệ điều hành FreeRTOS, cơ chế Khóa Mutex (Mutual Exclusion) được áp dụng nhằm mục đích gì?**
+   - A. Ngăn chặn hiện tượng tranh chấp tài nguyên dùng chung giữa các tác vụ
+   - B. Tăng xung nhịp xử lý của lõi vi điều khiển
+   - C. Tự động xóa các tác vụ bị lỗi khỏi danh sách chờ
+   - D. Hạ điện áp cấp cho các cảm biến ngoại vi
+
+2. **Hiện tượng nghịch đảo độ ưu tiên (Priority Inversion) trong hệ thống thời gian thực được khắc phục bằng kỹ thuật nào?**
+   - A. Chuyển sang mô hình vòng lặp đơn tuần tự
+   - B. Xóa bỏ hoàn toàn các tác vụ có mức ưu tiên thấp
+   - C. Kế thừa độ ưu tiên (Priority Inheritance)
+   - D. Giảm tần số xung nhịp của CPU
+
+---

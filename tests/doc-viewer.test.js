@@ -181,7 +181,7 @@ test('all 35 curriculum docs render without KaTeX errors, raw $$, dropped headin
   assert.equal(unlabeledPreCount, 2);
 });
 
-test('doc-5-1 renders complete sections including FSPL, Mermaid, Link Budget, and Doppler', () => {
+test('doc-5-1 renders complete sections including FSPL, diagrams, Link Budget, and Doppler', () => {
   const md = readFileSync(
     new URL('../fastapi-backend/app/firmware/curriculum/lab5/doc-5-1.md', import.meta.url),
     'utf8',
@@ -200,7 +200,7 @@ test('doc-5-1 renders complete sections including FSPL, Mermaid, Link Budget, an
   assert.ok(html.includes('Link Budget'));
   assert.ok(html.includes('Doppler'));
   assert.ok(html.includes('katex-display'));
-  assert.ok(html.includes('language-mermaid'));
+  assert.ok(html.includes('<img'));
 });
 
 test('parseSvgDimensions parses viewBox, attribute fallback, and rejects invalid SVG', () => {
@@ -331,7 +331,7 @@ test('tokenizeCodeLines keeps unlabeled snippets plain without false coloring', 
   assert.deepEqual(lines, [[{ type: 'plain', value: nmea }]]);
 });
 
-test('all 27 Mermaid diagrams across 35 curriculum docs parse cleanly without DOM leaks', async () => {
+test('Mermaid diagrams parse cleanly without DOM leaks', async () => {
   const { JSDOM } = await import('jsdom');
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
   const prevWindow = globalThis.window;
@@ -346,9 +346,10 @@ test('all 27 Mermaid diagrams across 35 curriculum docs parse cleanly without DO
     const { default: mermaid } = await import('mermaid');
     mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', suppressErrorRendering: true });
 
-    const files = collectDocFiles();
-    let diagramCount = 0;
+    await mermaid.parse('flowchart LR\n  A[OBC] --> B[COM]');
+    assert.equal(dom.window.document.body.innerHTML, '', 'sample diagram leaked DOM nodes during parse');
 
+    const files = collectDocFiles();
     for (const file of files) {
       const md = readFileSync(file, 'utf8');
       const re = /```mermaid\r?\n([\s\S]*?)```/g;
@@ -356,13 +357,10 @@ test('all 27 Mermaid diagrams across 35 curriculum docs parse cleanly without DO
       let index = 0;
       while ((match = re.exec(md)) !== null) {
         index += 1;
-        diagramCount += 1;
         await mermaid.parse(match[1].trim());
         assert.equal(dom.window.document.body.innerHTML, '', `${file}#${index} leaked DOM nodes during parse`);
       }
     }
-
-    assert.equal(diagramCount, 27);
   } finally {
     globalThis.window = prevWindow;
     globalThis.document = prevDocument;
