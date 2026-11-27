@@ -2328,7 +2328,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--text-heading); font-weight: 700; line-heig
 .fig-surface--video video { width: 100%; height: 100%; max-height: 100% !important; object-fit: contain; }
 .fig-surface--video .video-player { width: 100%; height: 100%; min-height: 0; }
 .fig-surface--video iframe { width: 100%; height: 100%; border: 0; display: block; }
-.fig-surface--doc { height: auto; min-height: 360px; padding: clamp(20px, 3vw, 48px); overflow-x: auto; overflow-y: visible; }
+.fig-surface--doc { height: auto; min-height: 360px; padding: clamp(20px, 3vw, 48px); background: #ffffff; overflow-x: auto; overflow-y: visible; }
 .fig-surface--doc .doc-content { max-width: 100%; min-height: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 
 /* Thẻ "Mục tiêu bài học" (nhạt hơn) */

@@ -358,7 +358,6 @@ function MermaidDiagram({ code }) {
               <div className="doc-mermaid-modal-header">
                 <div className="doc-mermaid-modal-title">
                   <strong>Xem sơ đồ toàn màn hình</strong>
-                  <span>Kéo chuột để di chuyển · Ctrl + cuộn để thu phóng</span>
                 </div>
                 <div className="doc-mermaid-modal-controls">
                   <button
@@ -646,7 +645,6 @@ function DocImage({ src, alt = '', title = '' }) {
             <div className="doc-mermaid-modal-header">
               <div className="doc-mermaid-modal-title">
                 <strong>{caption}</strong>
-                <span>Kéo chuột để di chuyển · Ctrl + cuộn để thu phóng</span>
               </div>
               <div className="doc-mermaid-modal-controls">
                 <button type="button" className="doc-mermaid-btn" onClick={handleZoomOut} aria-label="Thu nhỏ ảnh">−</button>

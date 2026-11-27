@@ -1357,29 +1357,36 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 .report-bar i { display: block; height: 100%; border-radius: inherit; background: var(--fig-gradient); }
 
 .lms-shell:not(.is-learning-shell) .report-table { min-width: 0; border-collapse: separate; border-spacing: 0; }
-.report-table th { text-align: left; white-space: nowrap; font-size: 0.74rem; }
-.report-table th.report-group { text-align: center; border-bottom: 1px solid rgba(9, 65, 116, 0.14); }
-.report-table .report-lab-col { width: 84px; min-width: 84px; text-align: center; }
-.report-table .report-student-col { position: sticky; left: 0; z-index: 1; min-width: 260px; max-width: 320px; background: var(--fig-surface); }
+.lms-shell:not(.is-learning-shell) .report-table th,
+.lms-shell:not(.is-learning-shell) .report-table td { padding: 10px 8px; }
+.lms-shell:not(.is-learning-shell) .report-table thead th { background: #e6edf6; }
+.lms-shell:not(.is-learning-shell) .report-table th:last-child,
+.lms-shell:not(.is-learning-shell) .report-table td:last-child { min-width: 58px; padding-right: 12px; }
+.report-table th { text-align: left; white-space: nowrap; font-size: 0.7rem; }
+.report-table th.report-num-col { text-align: center; }
+.report-table th.report-group { padding: 7px 8px; text-align: center; border-bottom: 1px solid rgba(9, 65, 116, 0.14); }
+.lms-shell:not(.is-learning-shell) .report-table .report-lab-col { width: 62px; min-width: 58px; padding: 8px 4px; text-align: center; }
+.lms-shell:not(.is-learning-shell) .report-table .report-student-col { position: sticky; left: 0; z-index: 1; min-width: 185px; max-width: 220px; padding-left: 14px; background: var(--fig-surface); border-right: 1px solid rgba(9, 65, 116, 0.08); }
 .lms-shell:not(.is-learning-shell) .report-table th.report-student-col { background: #e6edf6; }
-.report-student { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.report-student { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .report-student > div { min-width: 0; }
-.report-avatar { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--fig-gradient); color: #fff; font-size: 0.9rem; font-weight: 800; }
-.report-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.report-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.report-chip { padding: 2px 9px; border-radius: 999px; background: rgba(9, 65, 116, 0.1); color: var(--fig-navy); font-size: 0.72rem; font-style: normal; font-weight: 700; }
+.report-student strong { font-size: 0.86rem; line-height: 1.25; }
+.report-avatar { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--fig-gradient); color: #fff; font-size: 0.8rem; font-weight: 800; }
+.report-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.74rem; }
+.report-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.report-chip { padding: 1px 7px; border-radius: 999px; background: rgba(9, 65, 116, 0.1); color: var(--fig-navy); font-size: 0.68rem; font-style: normal; font-weight: 700; }
 .report-chip.is-muted { background: rgba(9, 65, 116, 0.06); opacity: 0.8; }
-.report-progress { display: flex; align-items: center; gap: 10px; min-width: 120px; }
+.report-progress { display: flex; align-items: center; gap: 6px; min-width: 82px; font-size: 0.82rem; }
 .report-progress .report-bar { flex: 1; }
 .report-progress b { min-width: 3ch; font-variant-numeric: tabular-nums; }
-.report-num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.report-num { text-align: center; font-variant-numeric: tabular-nums; font-size: 0.84rem; font-weight: 700; }
 .report-num.is-zero { opacity: 0.35; font-weight: 500; }
 .report-num.is-alert { color: #b42318; }
-.report-when { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.report-score { display: inline-block; min-width: 46px; padding: 3px 10px; border-radius: 999px; background: rgba(9, 65, 116, 0.08); font-weight: 700; font-variant-numeric: tabular-nums; }
+.report-when { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 0.78rem; }
+.report-score { display: inline-flex; align-items: center; justify-content: center; gap: 3px; white-space: nowrap; min-width: 44px; padding: 2px 7px; border-radius: 999px; background: rgba(9, 65, 116, 0.08); font-size: 0.75rem; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .report-score.is-done { background: var(--fig-gradient); color: #fff; }
 .report-score.is-empty { background: none; opacity: 0.4; }
-.report-tries { margin-top: 2px; font-size: 0.72rem; }
+.report-tries { margin-top: 2px; font-size: 0.68rem; white-space: nowrap; }
 
 @media (max-width: 800px) {
   .lms-shell:not(.is-learning-shell) .report-head { padding: 18px 20px; }
@@ -1388,7 +1395,7 @@ body:has(.lms-shell:not(.is-learning-shell)) {
   .report-stats > div { padding: 14px 20px; }
   .report-stats > div:nth-child(3) { border-left: 0; }
   .report-stats > div:nth-child(n+3) { border-top: 1px solid rgba(9, 65, 116, 0.16); }
-  .report-table .report-student-col { min-width: 200px; }
+  .lms-shell:not(.is-learning-shell) .report-table .report-student-col { min-width: 170px; }
 }
 
 /* ===== Fieldsets: padding đều, legend nằm trong khung ===== */

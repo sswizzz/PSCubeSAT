@@ -11,6 +11,14 @@ const shortDateTime = value => value
 const initial = student => ((student.full_name || student.email || '?').trim()[0] || '?').toUpperCase();
 const clampPercent = value => Math.max(0, Math.min(100, Number(value) || 0));
 
+function ScoreCheckIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 export default function ClassReportPage() {
   const { classId } = useParams();
   const url = `/api/classes/${classId}/reports`;
@@ -72,9 +80,9 @@ export default function ClassReportPage() {
         <tr>
           <th rowSpan={2} className="report-student-col">Sinh viên</th>
           <th rowSpan={2}>Tiến độ</th>
-          <th rowSpan={2}>Lab đạt</th>
-          <th rowSpan={2}>Lượt thi</th>
-          <th rowSpan={2}>Chờ duyệt</th>
+          <th rowSpan={2} className="report-num-col">Lab đạt</th>
+          <th rowSpan={2} className="report-num-col">Lượt thi</th>
+          <th rowSpan={2} className="report-num-col">Chờ duyệt</th>
           <th rowSpan={2}>Hoạt động</th>
           {labs.length > 0 && <th colSpan={labs.length} className="report-group">Điểm Lab Test cao nhất</th>}
         </tr>
@@ -102,7 +110,7 @@ export default function ClassReportPage() {
         {student.labs.map(lab => <td key={lab.id} className="report-lab-col">
           {lab.best_score === null
             ? <span className="report-score is-empty">—</span>
-            : <span className={`report-score${lab.completed ? ' is-done' : ''}`}>{lab.completed ? '✓ ' : ''}{lab.best_score}/5</span>}
+            : <span className={`report-score${lab.completed ? ' is-done' : ''}`}>{lab.completed && <ScoreCheckIcon />}{lab.best_score}/5</span>}
           {lab.attempts > 0 && <span className="lms-secondary report-tries">{lab.attempts} lượt</span>}
         </td>)}
       </tr>)}</tbody>
