@@ -2060,6 +2060,9 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 
 .path-lab-badge {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 3px 10px;
   border-radius: 999px;
   background: rgba(9, 65, 116, 0.1);
@@ -2073,11 +2076,27 @@ body:has(.lms-shell:not(.is-learning-shell)) {
   color: #ffffff;
 }
 
+.path-lab.is-locked .path-lab-badge {
+  background: rgba(9, 65, 116, 0.07);
+  color: rgba(9, 65, 116, 0.62);
+}
+
 .path-lab-meta {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: none;
+}
+
+.path-lab-reason-inline {
+  color: var(--fig-navy);
+  opacity: 0.65;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.path-lab-progress {
+  width: 72px;
 }
 
 .path-lab-count {
@@ -2110,16 +2129,130 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 }
 
 .path-pending {
-  margin: 10px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
   color: var(--fig-navy);
   font-size: 0.84rem;
   font-weight: 600;
 }
 
 .lms-shell:not(.is-learning-shell) .path-lab .path-lesson-list {
-  margin: 12px 0 0;
-  padding: 10px 0 0;
-  border-top: 1px solid rgba(9, 65, 116, 0.12);
+  margin: 14px 0 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--fig-surface);
+}
+
+.lms-shell:not(.is-learning-shell) .path-lab .path-lesson {
+  display: block;
+  padding: 0;
+  border-radius: 0;
+}
+
+.lms-shell:not(.is-learning-shell) .path-lab .path-lesson:hover {
+  background: transparent;
+}
+
+.lms-shell:not(.is-learning-shell) .path-lab .path-lesson + .path-lesson {
+  border-top: 1px solid rgba(9, 65, 116, 0.08);
+}
+
+.path-lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--fig-navy);
+  transition: background var(--transition-fast);
+}
+
+a.path-lesson-row:hover {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.path-lesson-row.is-locked {
+  color: rgba(9, 65, 116, 0.5);
+  cursor: default;
+}
+
+.path-lesson-row.is-next {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 3px 0 0 var(--fig-navy);
+}
+
+.path-lesson-icon,
+.path-lesson-idx {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.path-lesson-icon.is-done {
+  background: var(--fig-gradient);
+  color: #ffffff;
+}
+
+.path-lesson-icon.is-locked {
+  color: rgba(9, 65, 116, 0.45);
+}
+
+.path-lesson-idx {
+  color: var(--fig-navy);
+  opacity: 0.55;
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.path-lesson-name {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.path-lesson-tail {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.path-lesson-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.path-lesson-pill.is-pending {
+  background: rgba(180, 83, 9, 0.12);
+  color: #92400e;
+}
+
+.path-lesson-arrow {
+  color: var(--fig-navy);
+  opacity: 0.35;
+  font-weight: 700;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+a.path-lesson-row:hover .path-lesson-arrow {
+  opacity: 1;
+  transform: translateX(3px);
 }
 
 /* ===== Tiến độ & chấm bài ===== */
@@ -2187,14 +2320,18 @@ body:has(.lms-shell:not(.is-learning-shell)) {
   background: var(--fig-surface);
 }
 
-.lms-shell:not(.is-learning-shell) .progress-table th.progress-student-col {
-  background: #e6edf6;
+.lms-shell:not(.is-learning-shell) .progress-table thead th {
+  background: #e4ecf5;
 }
 
 .progress-pill {
-  display: inline-block;
-  min-width: 54px;
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 58px;
+  height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
   background: rgba(9, 65, 116, 0.08);
   color: var(--fig-navy);
@@ -2215,18 +2352,7 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 
 .progress-pill.is-locked {
   background: none;
-  opacity: 0.45;
-}
-
-.progress-empty-inline {
-  margin: 14px 0;
-  padding: 12px 18px;
-  border-radius: 18px;
-  background: rgba(243, 243, 250, 0.72);
-  color: var(--fig-navy);
-  opacity: 0.78;
-  font-size: 0.88rem;
-  font-weight: 600;
+  color: rgba(9, 65, 116, 0.42);
 }
 
 .lms-shell:not(.is-learning-shell) .progress-override {
@@ -2236,6 +2362,7 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 .progress-override > summary {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   cursor: pointer;
   list-style: none;
@@ -2263,16 +2390,6 @@ body:has(.lms-shell:not(.is-learning-shell)) {
 .progress-override > summary h2 {
   margin: 0;
   font-size: 1rem;
-}
-
-.progress-override > summary span {
-  margin-left: auto;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--fig-navy);
-  font-size: 0.76rem;
-  font-weight: 700;
 }
 
 .progress-override > form {
@@ -2516,5 +2633,7 @@ body:has(.lms-shell:not(.is-learning-shell)) {
   .curriculum-lesson-id { margin-left: 0; }
   .path-lab-summary { flex-wrap: wrap; }
   .path-lab-meta { margin-left: auto; }
+  .path-lab-progress { display: none; }
+  .path-lesson-row { padding: 10px; gap: 10px; }
   .progress-table .progress-student-col { min-width: 190px; }
 }

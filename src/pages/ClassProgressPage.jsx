@@ -4,6 +4,23 @@ import { request } from '../contexts/auth-api';
 import { useLmsResource } from '../components/classes/use-lms-resource';
 import { Notice } from '../components/classes/LmsCommon';
 
+function LockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="11" width="16" height="10" rx="2.5" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 function Review({ classId, submissionId, onDone }) {
   const { data, error, loading } = useLmsResource(`/api/classes/${classId}/submissions/${submissionId}`);
   const [feedback, setFeedback] = useState('');
@@ -80,8 +97,17 @@ export default function ClassProgressPage() {
                 </td>
                 {member.labs.map(lab => (
                   <td key={lab.id} title={lab.reason}>
-                    <span className={`progress-pill${lab.completed ? ' is-done' : lab.access === 'locked' ? ' is-locked' : lab.percent > 0 ? ' is-active' : ''}`}>
-                      {lab.completed ? '✓ 100%' : lab.access === 'locked' ? '🔒' : `${lab.percent}%`}
+                    <span
+                      className={`progress-pill${lab.completed ? ' is-done' : lab.access === 'locked' ? ' is-locked' : lab.percent > 0 ? ' is-active' : ''}`}
+                      aria-label={lab.access === 'locked' ? 'Đang khóa' : undefined}
+                    >
+                      {lab.completed ? (
+                        <><CheckIcon /><span>100%</span></>
+                      ) : lab.access === 'locked' ? (
+                        <LockIcon />
+                      ) : (
+                        `${Math.round(lab.percent)}%`
+                      )}
                     </span>
                   </td>
                 ))}
@@ -91,7 +117,7 @@ export default function ClassProgressPage() {
         </table>
       </div>
     )}
-    {data.pending_submissions.length > 0 ? (
+    {data.pending_submissions.length > 0 && (
       <section className="lms-panel">
         <h2>{data.pending_submissions.length} bài chờ chấm</h2>
         {data.pending_submissions.map(item => (
@@ -101,14 +127,11 @@ export default function ClassProgressPage() {
           </div>
         ))}
       </section>
-    ) : (
-      <p className="progress-empty-inline">Không có bài chờ chấm.</p>
     )}
     {review && <Review key={review} classId={classId} submissionId={review} onDone={() => { setReview(null); reload(); }} />}
     <details className="lms-panel progress-override">
       <summary>
         <h2>Miễn bài / Mở khóa riêng</h2>
-        <span>Tùy chọn</span>
       </summary>
       <form onSubmit={override}>
         <div className="lms-form-grid">
